@@ -46,7 +46,7 @@ await runScript(async () => {
         shippingAddresses: [{ label: "Shop", line1: "Demo address", city: "Demo City", isDefault: true }],
       },
     },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
 
   const passwordHash = await hashPassword(password);

@@ -74,6 +74,18 @@ src/
 scripts/               CLI scripts (db check, seed, create admin)
 ```
 
+## Admin API (role ADMIN; everything scoped to the admin's company)
+
+| Method & path | Purpose |
+|---|---|
+| `GET/POST /api/admin/brands` | List (with product counts) / create |
+| `PATCH/DELETE /api/admin/brands/:id` | Update / soft delete (refused while it has products) |
+| `GET/POST /api/admin/products` | List (`q`, `brandId`, `status`, `stock`, `page`, `limit`) / create |
+| `GET/PATCH/DELETE /api/admin/products/:id` | Read / update / soft delete |
+| `POST /api/admin/products/:id/stock` | `{ change: 50 }` or `{ change: -3 }` — atomic stock adjustment |
+
+Records of another company always answer **404**, exactly like missing records.
+
 ## Conventions
 
 - **Money is integer paise.** `₹650.50` is stored as `65050`. Use `src/lib/money.js` to convert/format.

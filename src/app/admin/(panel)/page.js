@@ -2,13 +2,15 @@ import Card from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ORDER_STATUS } from "@/lib/constants";
+import { requireAdminPage } from "@/server/auth/guards";
 
 export const metadata = { title: "Dashboard" };
 
 const PLACEHOLDER_STATS = ["Today's orders", "Pending orders", "Today's sales", "This month's sales"];
 
 // Placeholder dashboard — real numbers arrive in Phase 10.
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  await requireAdminPage();
   return (
     <>
       <PageHeader title="Dashboard" description="Overview of orders and sales." />

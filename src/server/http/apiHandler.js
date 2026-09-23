@@ -51,6 +51,11 @@ function toErrorResponse(err) {
 function zodFields(err) {
   const fields = {};
   for (const issue of err.issues) {
+    // .strict() schemas reject fields the client isn't allowed to send.
+    if (issue.code === "unrecognized_keys") {
+      for (const k of issue.keys) fields[[...issue.path, k].join(".")] = "This field can't be set here.";
+      continue;
+    }
     const key = issue.path.join(".") || "_";
     if (!fields[key]) fields[key] = issue.message;
   }
