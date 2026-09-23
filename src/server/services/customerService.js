@@ -229,3 +229,16 @@ export async function resetCustomerPassword(companyId, customerId, password) {
   }
   return { reset: true };
 }
+
+// Delivery addresses for the SHOP itself (checkout, account). Only address
+// fields — never admin-only data like notes or credit limit.
+export async function getShopAddresses(companyId, customerId) {
+  await connectDB();
+  const customer = await requireCustomer(companyId, customerId);
+  return customer.shippingAddresses.map((a) => ({
+    id: toId(a._id),
+    label: a.label || "Shop",
+    ...cleanAddress(a),
+    isDefault: Boolean(a.isDefault),
+  }));
+}
