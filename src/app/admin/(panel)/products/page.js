@@ -7,7 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
 import ProductImage from "@/components/ui/ProductImage";
 import Icon from "@/components/ui/Icon";
-import ProductFilters from "@/components/admin/ProductFilters";
+import ListFilters from "@/components/admin/ListFilters";
 import StockBadge from "@/components/admin/StockBadge";
 import { requireAdminPage } from "@/server/auth/guards";
 import { listProducts } from "@/server/services/productService";
@@ -39,7 +39,15 @@ export default async function ProductsPage({ searchParams }) {
       />
 
       <div className="mb-4">
-        <ProductFilters q={query.q ?? ""} brandId={query.brandId ?? ""} status={query.status} stock={query.stock ?? ""} brands={brands} />
+        <ListFilters
+          basePath="/admin/products"
+          search={{ value: query.q ?? "", placeholder: "Search name, SKU or brand" }}
+          selects={[
+            { name: "brandId", label: "Brand", value: query.brandId ?? "", options: [{ value: "", label: "All brands" }, ...brands.map((b) => ({ value: b.id, label: b.name }))] },
+            { name: "status", label: "Status", value: query.status, defaultValue: "all", options: [{ value: "all", label: "All status" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }] },
+            { name: "stock", label: "Stock", value: query.stock ?? "", options: [{ value: "", label: "All stock" }, { value: "low", label: "Low stock" }, { value: "out", label: "Out of stock" }] },
+          ]}
+        />
       </div>
 
       <Card className="overflow-hidden">

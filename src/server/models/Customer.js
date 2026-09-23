@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 import { ObjectId, addressSchema, defineModel } from "./shared.js";
 
 // A Customer is a retail shop that buys from the distributor.
-// The schema is defined now because retailer logins must link to one;
-// the admin APIs and screens for customers are built in Phase 4.
+// Its login lives in User (role RETAILER, customerId → this document).
 const shippingAddressSchema = new mongoose.Schema({
   label: { type: String, trim: true, maxlength: 40, default: "Shop" },
   ...addressSchema.obj,
@@ -25,6 +24,8 @@ const customerSchema = new mongoose.Schema(
     paymentTerms: { type: String, trim: true, maxlength: 60 }, // e.g. "15 days credit"
     notes: { type: String, trim: true, maxlength: 1000 },
     isActive: { type: Boolean, default: true },
+    // "shop owner phone code city", lowercased. Maintained by customerService.
+    searchText: { type: String, default: "" },
   },
   { timestamps: true },
 );

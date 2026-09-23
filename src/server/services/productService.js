@@ -52,10 +52,13 @@ async function requireProductDoc(companyId, productId) {
   return product;
 }
 
-export async function listProducts(companyId, { q, brandId, status, stock, page, limit }, { lowStockThreshold = 10 } = {}) {
+// productIds (optional): restrict to these products — used by the pricing grid's
+// "only special prices" view.
+export async function listProducts(companyId, { q, brandId, status, stock, page, limit, productIds }, { lowStockThreshold = 10 } = {}) {
   await connectDB();
 
   const filter = { companyId, archivedAt: null, ...tokenSearchFilter("searchText", q) };
+  if (productIds) filter._id = { $in: productIds };
   if (brandId) filter.brandId = brandId;
   if (status === "active") filter.isActive = true;
   if (status === "inactive") filter.isActive = false;

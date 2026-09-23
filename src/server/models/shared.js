@@ -1,9 +1,14 @@
 import mongoose from "mongoose";
 
-// Re-registering a model during Next.js hot reload throws
-// "OverwriteModelError", so reuse the compiled model when it already exists.
+// Registers a model. In development, hot reload re-runs model files: we drop
+// the previously compiled model so schema edits take effect immediately
+// (reusing it would keep the OLD schema and silently ignore new fields).
 export function defineModel(name, schema) {
-  return mongoose.models[name] || mongoose.model(name, schema);
+  if (mongoose.models[name]) {
+    if (process.env.NODE_ENV === "production") return mongoose.models[name];
+    mongoose.deleteModel(name);
+  }
+  return mongoose.model(name, schema);
 }
 
 export const { ObjectId } = mongoose.Schema.Types;

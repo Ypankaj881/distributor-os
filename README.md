@@ -25,6 +25,7 @@ so more distributors can be onboarded later without data mixing.
 | `npm run db:check` | Test the MongoDB connection |
 | `npm run admin:create` | Create the company + an admin, or reset an admin's password |
 | `npm run dev:retailer` | DEV ONLY: create a demo shop + retailer login |
+| `npm run search:rebuild` | Rebuild product/customer search text (after imports or manual DB edits) |
 
 ## Creating or resetting the admin
 
@@ -84,7 +85,30 @@ scripts/               CLI scripts (db check, seed, create admin)
 | `GET/PATCH/DELETE /api/admin/products/:id` | Read / update / soft delete |
 | `POST /api/admin/products/:id/stock` | `{ change: 50 }` or `{ change: -3 }` — atomic stock adjustment |
 
+| `GET/POST /api/admin/customers` | List (`q`, `status`, `page`) / create shop **and** its login |
+| `GET/PATCH /api/admin/customers/:id` | Read / update (changing phone changes the login ID) |
+| `PATCH /api/admin/customers/:id/status` | `{ isActive }` — deactivating logs the shop out everywhere |
+| `POST /api/admin/customers/:id/password` | `{ password }` — admin sets a new password |
+| `GET/PUT /api/admin/customers/:id/prices` | Pricing grid (`q`, `brandId`, `view=all\|special`) / set many prices |
+| `DELETE /api/admin/customers/:id/prices/:productId` | Remove special price → default applies |
+
 Records of another company always answer **404**, exactly like missing records.
+
+## Pricing rule
+
+What a shop pays for a product (before GST) is decided in ONE place,
+`resolvePrices()` in `src/server/services/pricingService.js`:
+
+1. **Customer-specific price** — an active `CustomerPrice` for that shop and product whose
+   period contains "now" (`effectiveFrom ≤ now < effectiveTo`, or no end date).
+   If several overlap, the one that **started most recently** wins.
+2. Otherwise the product's **default selling price**.
+
+- Prices are never overwritten: every change is a new record, so history is kept.
+  Setting a price "from today" closes the running one at that moment.
+- Scheduled prices: a price can start on a future date and/or end on a date
+  (inclusive, in the company's timezone). When it ends, the previous open-ended price applies again.
+- Special prices can't exceed MRP. Retailers only ever receive their own resolved price.
 
 ## Conventions
 

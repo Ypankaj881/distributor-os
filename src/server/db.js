@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 import { config } from "./config.js";
 
-// Reject query filters on fields that aren't in the schema. This blocks a class
-// of injection bugs where a request smuggles unexpected filter keys.
-mongoose.set("strictQuery", true);
+// A filter on a field that isn't in the schema THROWS instead of being silently
+// dropped. Silently dropping it turns e.g. { companyID: x } (typo) into {} →
+// "match everything", which could leak another company's data.
+mongoose.set("strictQuery", "throw");
 
 // In development Next.js reloads modules on every change, and on serverless each
 // warm instance reuses module state. Caching the connection on globalThis means
