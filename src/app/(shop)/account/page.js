@@ -1,6 +1,6 @@
 import Card from "@/components/ui/Card";
 import LogoutButton from "@/components/auth/LogoutButton";
-import { getAuth } from "@/server/auth/current";
+import { requireRetailerPage } from "@/server/auth/guards";
 import { formatPhone } from "@/lib/phone";
 
 export const metadata = { title: "Account" };
@@ -8,7 +8,7 @@ export const metadata = { title: "Account" };
 // Minimal account page for now (logout lives here on mobile).
 // Profile and address management are added in the retailer-screens phase.
 export default async function AccountPage() {
-  const auth = await getAuth();
+  const auth = await requireRetailerPage();
 
   return (
     <div className="space-y-5">
