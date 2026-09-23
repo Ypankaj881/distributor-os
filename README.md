@@ -23,6 +23,33 @@ so more distributors can be onboarded later without data mixing.
 | `npm run build` / `npm start` | Production build / run |
 | `npm run lint` | ESLint |
 | `npm run db:check` | Test the MongoDB connection |
+| `npm run admin:create` | Create the company + an admin, or reset an admin's password |
+| `npm run dev:retailer` | DEV ONLY: create a demo shop + retailer login |
+
+## Creating or resetting the admin
+
+PowerShell (the password is set for this terminal only, never saved to a file):
+
+```powershell
+$env:COMPANY_NAME="Chandrika Enterprises"   # only needed the first time
+$env:ADMIN_EMAIL="owner@example.com"
+$env:ADMIN_NAME="Owner Name"
+$env:ADMIN_PASSWORD="choose-a-strong-password"
+npm run admin:create
+```
+
+Running it again with the same `ADMIN_EMAIL` **resets** the password and logs that admin out everywhere.
+
+## How authentication works
+
+- Passwords are hashed with bcrypt (cost 12). Plain passwords are never stored or logged.
+- Login sets a signed JWT in an `httpOnly`, `SameSite=Lax` cookie (`Secure` in production), valid 7 days.
+- Every page and API request re-loads the user from MongoDB, so deactivating a user or
+  resetting a password (`tokenVersion` + 1) ends their sessions immediately.
+- `src/proxy.js` redirects logged-out users early and blocks cross-site write requests;
+  the real checks are `requireAdmin()` / `requireRetailer()` (API) and
+  `requireAdminPage()` / `requireRetailerPage()` (pages) in `src/server/auth/guards.js`.
+- Failed logins are rate-limited: 5 per account and 30 per IP per 15 minutes (stored in MongoDB).
 
 ## Folder structure
 

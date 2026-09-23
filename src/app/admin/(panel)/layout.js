@@ -1,9 +1,15 @@
 import AdminShell from "@/components/admin/AdminShell";
+import { requireAdminPage } from "@/server/auth/guards";
 
-// Admin panel layout. The (panel) route group lets /admin/login live outside
-// this sidebar layout (added in Phase 2) while every other /admin page uses it.
+// Admin panel layout. The (panel) route group keeps /admin/login outside this
+// sidebar layout while every other /admin page uses it.
 export const metadata = { title: { default: "Admin", template: "%s · Admin" } };
 
-export default function AdminPanelLayout({ children }) {
-  return <AdminShell>{children}</AdminShell>;
+export default async function AdminPanelLayout({ children }) {
+  const auth = await requireAdminPage();
+  return (
+    <AdminShell companyName={auth.company.name} userName={auth.name}>
+      {children}
+    </AdminShell>
+  );
 }

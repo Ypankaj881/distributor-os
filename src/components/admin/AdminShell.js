@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/ui/Icon";
+import LogoutButton from "@/components/auth/LogoutButton";
 import { cn } from "@/components/ui/cn";
 
 const NAV = [
@@ -47,32 +48,41 @@ function NavLinks({ onNavigate }) {
   );
 }
 
-function Brand() {
-  // Company name comes from the session in Phase 2.
+function Brand({ companyName }) {
   return (
     <div className="px-3">
-      <p className="text-sm font-semibold text-white">Distributor Admin</p>
-      <p className="text-xs text-slate-400">Order management</p>
+      <p className="truncate text-sm font-semibold text-white">{companyName}</p>
+      <p className="text-xs text-slate-400">Admin panel</p>
+    </div>
+  );
+}
+
+function UserFooter({ userName }) {
+  return (
+    <div className="mt-auto border-t border-slate-800 px-3 pt-4">
+      <p className="truncate text-sm font-medium text-white">{userName}</p>
+      <LogoutButton redirectTo="/admin/login" className="mt-2 text-slate-400 hover:text-white" />
     </div>
   );
 }
 
 // Desktop: fixed dark sidebar. Tablet/phone: top bar with a slide-in drawer.
-export default function AdminShell({ children }) {
+export default function AdminShell({ companyName, userName, children }) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col gap-6 bg-slate-900 px-3 py-5 lg:flex">
-        <Brand />
+        <Brand companyName={companyName} />
         <NavLinks />
+        <UserFooter userName={userName} />
       </aside>
 
       <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:hidden">
         <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="-ml-2 rounded-lg p-2 text-slate-600 hover:bg-slate-100">
           <Icon name="menu" className="size-6" />
         </button>
-        <span className="text-sm font-semibold">Distributor Admin</span>
+        <span className="truncate text-sm font-semibold">{companyName}</span>
       </header>
 
       {open && (
@@ -80,12 +90,13 @@ export default function AdminShell({ children }) {
           <div className="absolute inset-0 bg-slate-900/50" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 left-0 flex w-64 flex-col gap-6 bg-slate-900 px-3 py-5">
             <div className="flex items-start justify-between">
-              <Brand />
+              <Brand companyName={companyName} />
               <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" className="rounded-lg p-1 text-slate-400 hover:text-white">
                 <Icon name="x" />
               </button>
             </div>
             <NavLinks onNavigate={() => setOpen(false)} />
+            <UserFooter userName={userName} />
           </div>
         </div>
       )}

@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:check": "node --env-file=.env.local scripts/check-db.js"
+    "db:check": "node --env-file=.env.local scripts/check-db.js",
+    "admin:create": "node --env-file=.env.local scripts/create-admin.js",
+    "dev:retailer": "node --env-file=.env.local scripts/dev-create-retailer.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
