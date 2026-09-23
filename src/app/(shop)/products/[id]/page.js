@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import ProductImage from "@/components/ui/ProductImage";
 import PriceTag from "@/components/shop/PriceTag";
 import AvailabilityBadge from "@/components/shop/AvailabilityBadge";
+import AddToCartControl from "@/components/shop/AddToCartControl";
 import { requireRetailerPage } from "@/server/auth/guards";
 import { getShopProduct } from "@/server/services/catalogService";
 import { AppError } from "@/server/http/errors";
@@ -53,7 +54,10 @@ export default async function ShopProductPage({ params }) {
             <Row label="GST" value={`${product.gstRate}%${product.pricesIncludeGst ? " (included in price)" : " (added at checkout)"}`} />
           </Card>
 
-          {/* Quantity selector + "Add to cart" arrive with the cart (next phase). */}
+          <div className="space-y-2">
+            <AddToCartControl product={product} size="lg" className="w-full [&>input]:flex-1" />
+            {product.minOrderQty > 1 && <p className="text-xs text-slate-500">Minimum {product.minOrderQty} {product.unit} per order.</p>}
+          </div>
 
           {product.description && (
             <div>

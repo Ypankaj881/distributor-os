@@ -36,6 +36,8 @@ function toShopProductDTO(p, brandName, price, settings, { withDescription = fal
     gstRate: p.gstRate,
     pricesIncludeGst: Boolean(settings.pricesIncludeGst),
     availability: stockStatus(p.stockQuantity ?? 0, settings.lowStockThreshold ?? 10),
+    // Out-of-stock items can still be ordered if the distributor allows negative stock.
+    orderable: (p.stockQuantity ?? 0) > 0 || Boolean(settings.allowNegativeStock),
   };
   if (withDescription) dto.description = p.description ?? "";
   return dto;
@@ -98,6 +100,18 @@ export async function listShopProducts(companyId, customerId, { q, brandId, page
     items: products.map((p) => toShopProductDTO(p, brandNames.get(String(p.brandId)), prices.get(String(p._id)).price, settings)),
     meta: pageMeta(page, limit, total),
   };
+}
+
+// The raw product document IF this shop may order it (active product of an
+// active brand of this company), otherwise 404. Used by the cart.
+export async function getOrderableProductDoc(companyId, productId) {
+  await connectDB();
+  assertObjectId(productId, "Product");
+  const product = await Product.findOne({ _id: productId, companyId, archivedAt: null, isActive: true }).select(PRODUCT_FIELDS).lean();
+  if (!product) throw Errors.notFound("Product");
+  const brandOk = await Brand.exists({ _id: product.brandId, companyId, archivedAt: null, isActive: true });
+  if (!brandOk) throw Errors.notFound("Product");
+  return product;
 }
 
 export async function getShopProduct(companyId, customerId, productId, settings = {}) {
