@@ -5,7 +5,8 @@ import { getAdminOrder } from "@/server/services/adminOrderService";
 import { getCompanySettings } from "@/server/services/companyService";
 import { AppError } from "@/server/http/errors";
 import { formatINR } from "@/lib/money";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, todayIn } from "@/lib/dates";
+import { paymentState } from "@/lib/payments";
 import { formatPhone } from "@/lib/phone";
 import { ORDER_STATUS_LABELS } from "@/lib/constants";
 
@@ -111,7 +112,15 @@ export default async function PackingSlipPage({ params, searchParams }) {
           <div className="flex justify-between"><dt>Subtotal</dt><dd className="tabular-nums">{formatINR(order.subtotal)}</dd></div>
           <div className="flex justify-between"><dt>GST{order.pricesIncludeGst ? " (included)" : ""}</dt><dd className="tabular-nums">{formatINR(order.gstTotal)}</dd></div>
           <div className="flex justify-between border-t-2 border-slate-900 pt-1 text-base font-bold"><dt>Total</dt><dd className="tabular-nums">{formatINR(order.grandTotal)}</dd></div>
-          <div className="flex justify-between text-slate-600"><dt>Payment</dt><dd>{order.paymentStatus.toLowerCase()}</dd></div>
+          {(() => {
+            const pay = paymentState(order, todayIn(tz));
+            return (
+              <>
+                <div className="flex justify-between text-slate-600"><dt>Paid</dt><dd className="tabular-nums">{formatINR(pay.paid)}</dd></div>
+                <div className="flex justify-between font-semibold"><dt>Balance due</dt><dd className="tabular-nums">{formatINR(pay.balance)}</dd></div>
+              </>
+            );
+          })()}
         </dl>
       </div>
 

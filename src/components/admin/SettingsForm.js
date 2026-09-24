@@ -23,6 +23,7 @@ export default function SettingsForm({ company }) {
     pricesIncludeGst: company.settings.pricesIncludeGst,
     allowNegativeStock: company.settings.allowNegativeStock,
     lowStockThreshold: String(company.settings.lowStockThreshold),
+    defaultCreditDays: String(company.settings.defaultCreditDays ?? 0),
   });
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(null);
@@ -56,6 +57,7 @@ export default function SettingsForm({ company }) {
         pricesIncludeGst: form.pricesIncludeGst,
         allowNegativeStock: form.allowNegativeStock,
         lowStockThreshold: form.lowStockThreshold.trim() === "" ? NaN : Number(form.lowStockThreshold),
+        defaultCreditDays: form.defaultCreditDays.trim() === "" ? NaN : Number(form.defaultCreditDays),
       },
     });
     setSaving(false);
@@ -130,6 +132,16 @@ export default function SettingsForm({ company }) {
           onChange={set("lowStockThreshold")}
           error={errors["settings.lowStockThreshold"]}
           hint="Products at or below this quantity show as “Low stock”."
+        />
+
+        <Input
+          className="max-w-xs"
+          label="Default credit period (days)"
+          inputMode="numeric"
+          value={form.defaultCreditDays}
+          onChange={set("defaultCreditDays")}
+          error={errors["settings.defaultCreditDays"]}
+          hint="Payment is due this many days after delivery (0 = on delivery). Each shop can have its own."
         />
 
         <Checkbox

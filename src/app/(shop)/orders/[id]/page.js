@@ -8,7 +8,10 @@ import ReorderButton from "@/components/shop/ReorderButton";
 import { ORDER_STATUS } from "@/lib/constants";
 import { requireRetailerPage } from "@/server/auth/guards";
 import { formatINR } from "@/lib/money";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, formatDate, todayIn } from "@/lib/dates";
+import { paymentState } from "@/lib/payments";
+import Badge from "@/components/ui/Badge";
+import { PAYMENT_MODES } from "@/lib/constants";
 import { loadShopOrderOr404 } from "../loadOrder";
 
 export const metadata = { title: "Order details" };
@@ -18,6 +21,7 @@ export default async function ShopOrderPage({ params }) {
   const { id } = await params;
   const order = await loadShopOrderOr404(auth, id);
   const tz = auth.company.settings?.timezone ?? "Asia/Kolkata";
+  const pay = paymentState(order, todayIn(tz));
   const a = order.shippingAddress;
   const address = a ? [a.line1, a.line2, a.landmark, a.city, a.state, a.pincode].filter(Boolean).join(", ") : "";
 
@@ -92,6 +96,29 @@ export default async function ShopOrderPage({ params }) {
             <h2 className="mb-3 font-semibold">Status</h2>
             <OrderTimeline status={order.status} timeline={order.timeline} timeZone={tz} />
           </Card>
+          {pay.key !== "NA" && order.status !== "NEW" && (
+            <Card className="space-y-2 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold">Payment</h2>
+                <Badge tone={pay.tone}>{pay.label}</Badge>
+              </div>
+              <dl className="grid grid-cols-2 gap-y-1">
+                <dt className="text-slate-500">Paid</dt><dd className="text-right tabular-nums">{formatINR(pay.paid)}</dd>
+                <dt className="font-medium">Balance</dt><dd className={`text-right font-semibold tabular-nums ${pay.key === "OVERDUE" ? "text-red-600" : ""}`}>{formatINR(pay.balance)}</dd>
+                <dt className="text-slate-500">Due</dt><dd className="text-right">{pay.dueOn ? formatDate(`${pay.dueOn}T12:00:00Z`, "UTC") : "On delivery"}</dd>
+              </dl>
+              {order.payments.length > 0 && (
+                <ul className="border-t border-slate-100 pt-2 text-xs text-slate-500">
+                  {order.payments.map((p) => (
+                    <li key={p.id} className="flex justify-between">
+                      <span>{formatDate(`${p.paidOn}T12:00:00Z`, "UTC")} · {PAYMENT_MODES[p.mode] ?? p.mode}</span>
+                      <span className="tabular-nums">{formatINR(p.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
           <ReorderButton orderId={order.id} />
           <ShareOrderButton order={order} distributorPhone={auth.company.phone} className="w-full" />
           {order.status === ORDER_STATUS.NEW && <CancelOrderButton orderId={order.id} />}

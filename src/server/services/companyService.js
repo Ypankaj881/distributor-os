@@ -17,6 +17,7 @@ function toSettingsDTO(c) {
       pricesIncludeGst: Boolean(c.settings?.pricesIncludeGst),
       allowNegativeStock: Boolean(c.settings?.allowNegativeStock),
       lowStockThreshold: c.settings?.lowStockThreshold ?? 10,
+      defaultCreditDays: c.settings?.defaultCreditDays ?? 0,
       timezone: c.settings?.timezone ?? "Asia/Kolkata",
     },
   };

@@ -58,6 +58,7 @@ const ALIASES = {
     pincode: ["pincode", "pin", "pin code", "postal code"],
     credit_limit: ["credit limit", "credit"],
     payment_terms: ["payment terms", "terms"],
+    credit_days: ["credit days", "credit period", "days"],
   },
   prices: {
     customer: ["customer", "shop", "customer code", "code", "phone", "mobile"],
@@ -241,12 +242,15 @@ export async function importCustomers(companyId, text, { dryRun }) {
       shippingAddress: address,
       creditLimit: money(r.get("credit_limit")) ?? 0,
       paymentTerms: r.get("payment_terms"),
+      creditDays: r.get("credit_days") === "" ? null : int(r.get("credit_days")),
     };
     const existingId = phone && byPhone.get(phone);
 
     if (existingId) {
       // Don't blank out details the file leaves empty.
-      const patch = Object.fromEntries(Object.entries(fields).filter(([k, v]) => (typeof v === "string" ? v !== "" : k !== "creditLimit" || v > 0)));
+      const patch = Object.fromEntries(
+        Object.entries(fields).filter(([k, v]) => (typeof v === "string" ? v !== "" : k === "creditDays" ? v !== null : k !== "creditLimit" || v > 0)),
+      );
       if (!Object.values(address).some(Boolean)) {
         delete patch.billingAddress;
         delete patch.shippingAddress;

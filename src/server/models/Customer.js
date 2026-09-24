@@ -22,6 +22,8 @@ const customerSchema = new mongoose.Schema(
     shippingAddresses: [shippingAddressSchema],
     creditLimit: { type: Number, default: 0, min: 0 }, // paise; informational in V1
     paymentTerms: { type: String, trim: true, maxlength: 60 }, // e.g. "15 days credit"
+    // Days after delivery before payment is due. null = use the company default.
+    creditDays: { type: Number, min: 0, max: 365, default: null },
     notes: { type: String, trim: true, maxlength: 1000 },
     isActive: { type: Boolean, default: true },
     // "shop owner phone code city", lowercased. Maintained by customerService.

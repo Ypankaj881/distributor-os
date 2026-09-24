@@ -9,7 +9,8 @@ import { requireRetailerPage } from "@/server/auth/guards";
 import { listShopOrders } from "@/server/services/orderService";
 import { orderListQuerySchema } from "@/server/validators/order";
 import { formatINR } from "@/lib/money";
-import { formatDate } from "@/lib/dates";
+import { formatDate, todayIn } from "@/lib/dates";
+import PaymentBadge from "@/components/orders/PaymentBadge";
 
 export const metadata = { title: "My orders" };
 
@@ -34,9 +35,10 @@ export default async function MyOrdersPage({ searchParams }) {
               <li key={o.id}>
                 <Link href={`/orders/${o.id}`} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 active:bg-slate-50">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold">{o.orderNumber}</p>
                       <StatusBadge status={o.status} />
+                      {o.status !== "NEW" && <PaymentBadge order={o} today={todayIn(tz)} />}
                     </div>
                     <p className="mt-0.5 text-xs text-slate-500">{formatDate(o.createdAt, tz)} · {o.itemCount} item{o.itemCount === 1 ? "" : "s"}</p>
                     <p className="mt-1 truncate text-sm text-slate-600">{o.preview.join(", ")}{o.itemCount > 3 ? "…" : ""}</p>

@@ -184,6 +184,10 @@ export function toShopOrderDTO(o) {
     shopName: o.customerSnapshot?.shopName ?? "",
     status: o.status,
     paymentStatus: o.paymentStatus,
+    amountPaid: o.amountPaid ?? 0,
+    dueOn: o.dueOn ?? null,
+    // The shop sees its own payments (date, amount, mode) — not who recorded them.
+    payments: (o.payments ?? []).filter((p) => !p.voidedAt).map((p) => ({ id: toId(p._id), amount: p.amount, mode: p.mode, paidOn: p.paidOn })),
     createdAt: toIso(o.createdAt),
     items: o.items.map((i) => ({
       id: toId(i._id),
@@ -224,7 +228,7 @@ export async function listShopOrders(companyId, customerId, { page, limit }) {
   const [total, orders] = await Promise.all([
     Order.countDocuments(filter),
     Order.find(filter)
-      .select("orderNumber status grandTotal createdAt items.name items.orderedQty")
+      .select("orderNumber status paymentStatus amountPaid dueOn grandTotal createdAt items.name items.orderedQty")
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -235,6 +239,9 @@ export async function listShopOrders(companyId, customerId, { page, limit }) {
       id: toId(o._id),
       orderNumber: o.orderNumber,
       status: o.status,
+      paymentStatus: o.paymentStatus,
+      amountPaid: o.amountPaid ?? 0,
+      dueOn: o.dueOn ?? null,
       grandTotal: o.grandTotal,
       createdAt: toIso(o.createdAt),
       itemCount: o.items.length,

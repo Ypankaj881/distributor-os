@@ -2,10 +2,14 @@ import mongoose from "mongoose";
 import { connectDB } from "../db.js";
 import { Order } from "../models/Order.js";
 import { Product } from "../models/Product.js";
+import { Customer } from "../models/Customer.js";
+import { Company } from "../models/Company.js";
 import { AppError, Errors } from "../http/errors.js";
 import { assertObjectId } from "../utils.js";
 import { ORDER_STATUS, ORDER_STATUS_LABELS, ORDER_TRANSITIONS, ROLES } from "../../lib/constants.js";
 import { splitGst } from "../../lib/tax.js";
+import { derivePaymentStatus } from "../../lib/payments.js";
+import { addDays, todayIn } from "../../lib/dates.js";
 
 // ============================================================================
 // ORDER WORKFLOW — every status change goes through this file.
@@ -115,6 +119,8 @@ export async function confirmOrder(companyId, orderId, { quantities = [], note =
       if (item.cancelledQty > 0) changes.push(`${item.name}: ${item.orderedQty} → ${item.confirmedQty}`);
     }
     recalcTotals(order);
+    // A lower total can change the payment status (e.g. an advance now covers it).
+    order.paymentStatus = derivePaymentStatus(order.amountPaid ?? 0, order.grandTotal);
 
     const autoNote = changes.length ? `Confirmed with changes — ${changes.join("; ")}` : "";
     order.status = ORDER_STATUS.CONFIRMED;
@@ -156,17 +162,20 @@ export async function transitionOrder(companyId, orderId, { status: to, note = "
       order.stockDeducted = false;
     }
 
+    // Delivered → payment falls due after the shop's credit period.
+    if (to === ORDER_STATUS.DELIVERED) {
+      const [customer, company] = await Promise.all([
+        Customer.findOne({ _id: order.customerId, companyId }).select("creditDays").session(session).lean(),
+        Company.findById(companyId).select("settings").session(session).lean(),
+      ]);
+      const creditDays = customer?.creditDays ?? company?.settings?.defaultCreditDays ?? 0;
+      order.creditDays = creditDays;
+      order.dueOn = addDays(todayIn(company?.settings?.timezone ?? "Asia/Kolkata"), creditDays);
+    }
+
     order.status = to;
     order.timeline.push(timelineEntry(to, actor, note));
     await order.save({ session });
     return order.toObject();
   });
-}
-
-export async function setPaymentStatus(companyId, orderId, paymentStatus) {
-  await connectDB();
-  assertObjectId(orderId, "Order");
-  const order = await Order.findOneAndUpdate({ _id: orderId, companyId }, { $set: { paymentStatus } }, { returnDocument: "after" }).lean();
-  if (!order) throw Errors.notFound("Order");
-  return order;
 }

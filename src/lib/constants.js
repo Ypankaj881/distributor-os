@@ -38,10 +38,21 @@ export const ORDER_TRANSITIONS = Object.freeze({
   REJECTED: [],
 });
 
+// Stored on the order and always DERIVED from the payments recorded
+// (never set by hand). "Overdue" is not stored: it is worked out from the
+// due date whenever it's shown — see lib/payments.js.
 export const PAYMENT_STATUS = Object.freeze({
   UNPAID: "UNPAID",
   PARTIAL: "PARTIAL",
   PAID: "PAID",
+});
+
+export const PAYMENT_MODES = Object.freeze({
+  CASH: "Cash",
+  UPI: "UPI",
+  BANK: "Bank transfer",
+  CHEQUE: "Cheque",
+  OTHER: "Other",
 });
 
 // Suggested units for the product form. The field itself is free text so a

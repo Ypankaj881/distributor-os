@@ -32,6 +32,7 @@ function initialState(customer, password = "") {
     shippingSame: customer ? sameAddress(billing, shipping) : true,
     creditLimit: customer?.creditLimit ? String(fromPaise(customer.creditLimit)) : "",
     paymentTerms: customer?.paymentTerms ?? "",
+    creditDays: customer?.creditDays != null ? String(customer.creditDays) : "",
     notes: customer?.notes ?? "",
     password,
   };
@@ -73,6 +74,7 @@ export default function CustomerForm({ customer, initialPassword = "" }) {
       shippingAddress: form.shippingSame ? form.billingAddress : form.shippingAddress,
       creditLimit: form.creditLimit.trim() ? toPaise(form.creditLimit) : 0,
       paymentTerms: form.paymentTerms,
+      creditDays: form.creditDays.trim() === "" ? null : Number(form.creditDays),
       notes: form.notes,
       ...(isNew && { password: form.password }),
     };
@@ -161,8 +163,17 @@ export default function CustomerForm({ customer, initialPassword = "" }) {
       <Card className="space-y-4 p-5">
         <h2 className="font-semibold">Credit &amp; terms</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Credit limit (₹)" inputMode="decimal" value={form.creditLimit} onChange={set("creditLimit")} error={errors.creditLimit} hint="For reference only in this version." />
+          <Input label="Credit limit (₹)" inputMode="decimal" value={form.creditLimit} onChange={set("creditLimit")} error={errors.creditLimit} hint="Shown against the shop's outstanding balance (not enforced)." />
           <Input label="Payment terms" value={form.paymentTerms} onChange={set("paymentTerms")} error={errors.paymentTerms} maxLength={60} placeholder="e.g. 15 days credit" />
+          <Input
+            label="Credit period (days)"
+            inputMode="numeric"
+            value={form.creditDays}
+            onChange={set("creditDays")}
+            error={errors.creditDays}
+            placeholder="Company default"
+            hint="Days after delivery before payment is due. Empty = company default, 0 = pay on delivery."
+          />
         </div>
         <Textarea label="Internal notes" value={form.notes} onChange={set("notes")} error={errors.notes} maxLength={1000} hint="Only visible to your team." />
       </Card>

@@ -5,6 +5,7 @@ import { Customer } from "../models/Customer.js";
 import { Product } from "../models/Product.js";
 import { toId } from "../utils.js";
 import { countOrdersByStatus, listAdminOrders } from "./adminOrderService.js";
+import { companyReceivables } from "./paymentService.js";
 import { ORDER_STATUS } from "../../lib/constants.js";
 import { startOfDay, todayIn, addDays } from "../../lib/dates.js";
 
@@ -30,7 +31,7 @@ export async function getDashboard(companyId, settings = {}) {
   const salesAmount = { $cond: [{ $in: ["$status", NOT_SALES] }, 0, "$grandTotal"] };
   const lowStockFilter = { companyId, archivedAt: null, isActive: true, stockQuantity: { $lte: threshold } };
 
-  const [statusCounts, daily, month, activeCustomers, activeProducts, lowStock, lowStockCount, recent] = await Promise.all([
+  const [statusCounts, daily, month, activeCustomers, activeProducts, lowStock, lowStockCount, recent, receivables] = await Promise.all([
     countOrdersByStatus(companyId),
     Order.aggregate([
       { $match: { companyId: cid, createdAt: { $gte: chartStart } } },
@@ -58,6 +59,7 @@ export async function getDashboard(companyId, settings = {}) {
     Product.find(lowStockFilter).select("name sku stockQuantity unit").sort({ stockQuantity: 1, name: 1 }).limit(6).lean(),
     Product.countDocuments(lowStockFilter),
     listAdminOrders(companyId, { status: "all", page: 1, limit: 6 }, { timeZone: tz }),
+    companyReceivables(companyId, { timeZone: tz }),
   ]);
 
   // Zero-fill days without orders so the chart has no gaps.
@@ -87,6 +89,8 @@ export async function getDashboard(companyId, settings = {}) {
       items: lowStock.map((p) => ({ id: toId(p._id), name: p.name, sku: p.sku, stockQuantity: p.stockQuantity, unit: p.unit })),
     },
     days,
+    receivables,
+    today,
     recentOrders: recent.items,
   };
 }

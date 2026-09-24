@@ -50,6 +50,7 @@ function toDetailDTO(c, user) {
     shippingAddress: cleanAddress(ship),
     creditLimit: c.creditLimit ?? 0,
     paymentTerms: c.paymentTerms ?? "",
+    creditDays: c.creditDays ?? null,
     notes: c.notes ?? "",
     updatedAt: toIso(c.updatedAt),
     login: user

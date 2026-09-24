@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ORDER_STATUS, PAYMENT_STATUS, ROLES } from "../../lib/constants.js";
+import { ORDER_STATUS, PAYMENT_MODES, PAYMENT_STATUS, ROLES } from "../../lib/constants.js";
 import { ObjectId, defineModel } from "./shared.js";
 
 // Items and the status timeline are EMBEDDED in the order:
@@ -48,6 +48,25 @@ const timelineSchema = new mongoose.Schema(
   { _id: false },
 );
 
+// One money receipt against the order (cash collected, UPI, cheque…).
+// Wrong entries are VOIDED, never deleted, so the history stays auditable.
+const paymentSchema = new mongoose.Schema(
+  {
+    amount: { type: Number, required: true, min: 1, validate: int }, // paise
+    mode: { type: String, enum: Object.keys(PAYMENT_MODES), required: true },
+    paidOn: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ }, // date in the company timezone
+    reference: { type: String, default: "", maxlength: 100 }, // UPI ref, cheque no.…
+    note: { type: String, default: "", maxlength: 300 },
+    recordedAt: { type: Date, default: Date.now },
+    recordedBy: { type: ObjectId, ref: "User" },
+    recordedByName: { type: String, default: "" },
+    voidedAt: { type: Date, default: null },
+    voidedByName: { type: String, default: "" },
+    voidReason: { type: String, default: "", maxlength: 300 },
+  },
+  { _id: true },
+);
+
 const addressSnapshot = {
   label: String, line1: String, line2: String, landmark: String, city: String, state: String, pincode: String,
 };
@@ -77,7 +96,12 @@ const orderSchema = new mongoose.Schema(
 
     notes: { type: String, default: "", maxlength: 500 },
     status: { type: String, enum: Object.values(ORDER_STATUS), default: ORDER_STATUS.NEW },
+    // Payments: status is derived from amountPaid (see lib/payments.js).
     paymentStatus: { type: String, enum: Object.values(PAYMENT_STATUS), default: PAYMENT_STATUS.UNPAID },
+    amountPaid: { type: Number, default: 0, min: 0, validate: int }, // sum of non-voided payments, paise
+    payments: { type: [paymentSchema], default: [] },
+    creditDays: { type: Number, default: null }, // snapshot of the shop's credit period when delivered
+    dueOn: { type: String, default: null }, // "YYYY-MM-DD", set on delivery; null = not due yet
     stockDeducted: { type: Boolean, default: false }, // set when confirmed (next phase)
 
     timeline: { type: [timelineSchema], default: [] },
@@ -95,5 +119,6 @@ orderSchema.index(
 orderSchema.index({ companyId: 1, customerId: 1, createdAt: -1 }); // "My orders"
 orderSchema.index({ companyId: 1, status: 1, createdAt: -1 }); // admin order list by status
 orderSchema.index({ companyId: 1, createdAt: -1 }); // admin list / dashboard by date
+orderSchema.index({ companyId: 1, paymentStatus: 1, dueOn: 1 }); // unpaid / overdue lists and totals
 
 export const Order = defineModel("Order", orderSchema);

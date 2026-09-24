@@ -6,12 +6,12 @@ import Button from "@/components/ui/Button";
 import OrderTimeline from "@/components/orders/OrderTimeline";
 import ConfirmOrderPanel from "@/components/admin/ConfirmOrderPanel";
 import OrderActions from "@/components/admin/OrderActions";
-import PaymentStatusControl from "@/components/admin/PaymentStatusControl";
+import PaymentsCard from "@/components/admin/PaymentsCard";
 import { requireAdminPage } from "@/server/auth/guards";
 import { getAdminOrder } from "@/server/services/adminOrderService";
 import { AppError } from "@/server/http/errors";
 import { formatINR } from "@/lib/money";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, todayIn } from "@/lib/dates";
 import { formatPhone } from "@/lib/phone";
 import { statusMessageText, whatsappUrl } from "@/lib/orderShare";
 import { ORDER_STATUS } from "@/lib/constants";
@@ -115,8 +115,8 @@ export default async function AdminOrderPage({ params }) {
 
         <div className="space-y-6">
           <OrderActions order={order} />
+          <PaymentsCard order={order} today={todayIn(tz)} />
           <Card className="space-y-4 p-4">
-            <PaymentStatusControl orderId={order.id} value={order.paymentStatus} />
             <a
               href={whatsappUrl(statusMessageText(order, auth.company.name), order.customer.phone)}
               target="_blank"

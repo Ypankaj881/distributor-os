@@ -55,12 +55,14 @@ const fields = {
   shippingAddress: addressSchema,
   creditLimit: paise("credit limit"),
   paymentTerms: optionalText(60, "Payment terms"),
+  // Days after delivery before payment is due; null = company default.
+  creditDays: z.number({ error: "Enter a number of days." }).int("Whole days only.").min(0, "Can't be negative.").max(365, "At most 365 days.").nullable(),
   notes: optionalText(1000, "Notes"),
 };
 
 const CREATE_DEFAULTS = {
   ownerName: "", email: "", gstin: "", customerCode: "", billingAddress: {}, shippingAddress: {},
-  creditLimit: 0, paymentTerms: "", notes: "",
+  creditLimit: 0, paymentTerms: "", creditDays: null, notes: "",
 };
 
 export const customerCreateSchema = z.object({

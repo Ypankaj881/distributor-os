@@ -8,8 +8,11 @@ import CustomerAccessCard from "@/components/admin/CustomerAccessCard";
 import { requireAdminPage } from "@/server/auth/guards";
 import { countSpecialPrices } from "@/server/services/pricingService";
 import { recentOrdersForCustomer } from "@/server/services/adminOrderService";
+import { customerBalance } from "@/server/services/paymentService";
 import { formatINR } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
+import { daysBetween } from "@/lib/payments";
+import { todayIn } from "@/lib/dates";
 import { loadCustomerOr404 } from "./loadCustomer";
 
 export const metadata = { title: "Customer" };
@@ -18,11 +21,15 @@ export default async function CustomerDetailsPage({ params }) {
   const auth = await requireAdminPage();
   const { id } = await params;
   const customer = await loadCustomerOr404(auth.companyId, id);
-  const [specialCount, recent] = await Promise.all([
+  const timeZone = auth.company.settings?.timezone ?? "Asia/Kolkata";
+  const [specialCount, recent, balance] = await Promise.all([
     countSpecialPrices(auth.companyId, customer.id),
     recentOrdersForCustomer(auth.companyId, customer.id),
+    customerBalance(auth.companyId, customer.id, { timeZone }),
   ]);
-  const timeZone = auth.company.settings?.timezone ?? "Asia/Kolkata";
+  const today = todayIn(timeZone);
+  const creditDays = customer.creditDays ?? auth.company.settings?.defaultCreditDays ?? 0;
+  const usedPct = customer.creditLimit > 0 ? Math.min(100, Math.round((balance.outstanding / customer.creditLimit) * 100)) : null;
 
   return (
     <>
@@ -40,6 +47,36 @@ export default async function CustomerDetailsPage({ params }) {
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <CustomerForm customer={customer} />
         <div className="space-y-6">
+          <Card className="space-y-3 p-5">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-semibold">Balance</h2>
+              {balance.orders > 0 && (
+                <Link href={`/admin/orders?status=all&payment=due&customerId=${customer.id}`} className="text-sm font-medium text-brand-600 hover:underline">Unpaid orders</Link>
+              )}
+            </div>
+            <dl className="grid grid-cols-2 gap-y-1 text-sm">
+              <dt className="text-slate-500">Outstanding</dt>
+              <dd className="text-right font-semibold tabular-nums">{formatINR(balance.outstanding)}</dd>
+              <dt className="text-slate-500">Overdue</dt>
+              <dd className={`text-right tabular-nums ${balance.overdue > 0 ? "font-semibold text-red-600" : ""}`}>
+                {formatINR(balance.overdue)}{balance.overdueOrders > 0 && ` (${balance.overdueOrders})`}
+              </dd>
+              {balance.oldestDue && (
+                <>
+                  <dt className="text-slate-500">Oldest overdue</dt>
+                  <dd className="text-right text-red-600">{daysBetween(balance.oldestDue, today)} days</dd>
+                </>
+              )}
+              <dt className="text-slate-500">Credit period</dt>
+              <dd className="text-right">{creditDays === 0 ? "Pay on delivery" : `${creditDays} days`}{customer.creditDays == null ? " (default)" : ""}</dd>
+            </dl>
+            {usedPct != null && (
+              <div>
+                <div className="mb-1 flex justify-between text-xs text-slate-500"><span>Credit limit used</span><span>{usedPct}% of {formatINR(customer.creditLimit)}</span></div>
+                <div className="h-2 rounded-full bg-slate-100"><div className={`h-2 rounded-full ${usedPct >= 100 ? "bg-red-500" : usedPct >= 80 ? "bg-amber-500" : "bg-brand-500"}`} style={{ width: `${usedPct}%` }} /></div>
+              </div>
+            )}
+          </Card>
           <CustomerAccessCard customer={customer} timeZone={timeZone} />
           <Card className="space-y-3 p-5">
             <h2 className="font-semibold">Pricing</h2>

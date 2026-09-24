@@ -20,6 +20,8 @@ const companySchema = new mongoose.Schema(
       allowNegativeStock: { type: Boolean, default: false },
       pricesIncludeGst: { type: Boolean, default: false },
       lowStockThreshold: { type: Number, default: 10, min: 0 },
+      // Default credit period for shops without their own (0 = pay on delivery).
+      defaultCreditDays: { type: Number, default: 0, min: 0, max: 365 },
       timezone: { type: String, default: "Asia/Kolkata" },
     },
 

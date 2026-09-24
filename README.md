@@ -140,6 +140,19 @@ NEW ──confirm──▶ CONFIRMED ──▶ PACKED ──▶ DISPATCHED ─�
 - Every change appends to the order's `timeline` (status, time, who, note). Cancel/reject need a reason.
 - `src/server/services/orderWorkflow.js` is the only place that changes order status.
 
+## Payments
+
+- The admin **records payments** received per order (amount, cash/UPI/bank/cheque, date, reference).
+  The status is **derived**, never picked by hand: `UNPAID` → `PARTIAL` (partly paid) → `PAID`.
+  A payment can't exceed the balance (atomic check), and wrong entries are **voided** with a reason (kept in history).
+- **Due date** = delivery date + the shop's **credit period** (its own days, else the company default in
+  Settings; `0` = pay on delivery). Set automatically when an order is marked **Delivered**.
+- **Overdue** = not fully paid and today is after the due date. It is calculated when shown, not stored.
+- Outstanding / overdue totals: dashboard **Payments** row, shop page **Balance** (vs credit limit), the
+  order list **Payment** filter (money due / overdue / unpaid / partly paid / paid), and the shop's own
+  Account page ("Amount due").
+- Rules live in `src/lib/payments.js` (shared by server and UI) and `src/server/services/paymentService.js`.
+
 ## Pricing rule
 
 What a shop pays for a product (before GST) is decided in ONE place,

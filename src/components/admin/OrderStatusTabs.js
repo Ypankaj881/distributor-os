@@ -14,12 +14,14 @@ const TABS = [
 
 // Status tabs with counts. "Open" = everything not yet delivered/cancelled —
 // the distributor's working list.
-export default function OrderStatusTabs({ active, counts, q }) {
+export default function OrderStatusTabs({ active, counts, q, payment, customerId }) {
   const countFor = (key) => (key === "closed" ? (counts.CANCELLED ?? 0) + (counts.REJECTED ?? 0) : (counts[key] ?? 0));
   const href = (key) => {
     const sp = new URLSearchParams();
     if (key !== "open") sp.set("status", key);
     if (q) sp.set("q", q);
+    if (payment) sp.set("payment", payment);
+    if (customerId) sp.set("customerId", customerId);
     return sp.toString() ? `/admin/orders?${sp}` : "/admin/orders";
   };
 

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
-import Badge, { StatusBadge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/Badge";
+import PaymentBadge from "@/components/orders/PaymentBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
 import ListFilters from "@/components/admin/ListFilters";
@@ -12,11 +13,18 @@ import { requireAdminPage } from "@/server/auth/guards";
 import { listAdminOrders, countOrdersByStatus } from "@/server/services/adminOrderService";
 import { adminOrderListQuerySchema } from "@/server/validators/order";
 import { formatINR } from "@/lib/money";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, todayIn } from "@/lib/dates";
 
 export const metadata = { title: "Orders" };
 
-const PAYMENT_TONE = { UNPAID: "gray", PARTIAL: "amber", PAID: "green" };
+const PAYMENT_FILTERS = [
+  { value: "", label: "Any payment" },
+  { value: "due", label: "Money due" },
+  { value: "overdue", label: "Overdue" },
+  { value: "unpaid", label: "Unpaid" },
+  { value: "partial", label: "Partly paid" },
+  { value: "paid", label: "Paid" },
+];
 
 export default async function AdminOrdersPage({ searchParams }) {
   const auth = await requireAdminPage();
@@ -24,6 +32,7 @@ export default async function AdminOrdersPage({ searchParams }) {
   // Default tab is "open" (the working list) unless a status is given.
   const query = adminOrderListQuerySchema.parse({ status: "open", ...sp });
   const tz = auth.company.settings?.timezone ?? "Asia/Kolkata";
+  const today = todayIn(tz);
 
   const [{ items, meta }, counts] = await Promise.all([
     listAdminOrders(auth.companyId, query, { timeZone: tz }),
@@ -39,8 +48,13 @@ export default async function AdminOrdersPage({ searchParams }) {
       />
 
       <div className="mb-4 space-y-3">
-        <OrderStatusTabs active={query.status} counts={counts} q={query.q} />
-        <ListFilters basePath="/admin/orders" baseParams={{ status: query.status === "open" ? "" : query.status }} search={{ value: query.q ?? "", placeholder: "Search order number, shop or mobile" }} />
+        <OrderStatusTabs active={query.status} counts={counts} q={query.q} payment={query.payment} customerId={query.customerId} />
+        <ListFilters
+          basePath="/admin/orders"
+          baseParams={{ status: query.status === "open" ? "" : query.status, customerId: query.customerId ?? "" }}
+          search={{ value: query.q ?? "", placeholder: "Search order number, shop or mobile" }}
+          selects={[{ name: "payment", label: "Payment", value: query.payment ?? "", options: PAYMENT_FILTERS }]}
+        />
       </div>
 
       <Card className="overflow-hidden">
@@ -72,7 +86,7 @@ export default async function AdminOrdersPage({ searchParams }) {
                     <td className="px-4 py-3 text-right tabular-nums">{o.itemCount}</td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums">{formatINR(o.grandTotal)}</td>
                     <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
-                    <td className="px-4 py-3"><Badge tone={PAYMENT_TONE[o.paymentStatus]}>{o.paymentStatus.toLowerCase()}</Badge></td>
+                    <td className="px-4 py-3"><PaymentBadge order={o} today={today} showBalance /></td>
                   </tr>
                 ))}
               </tbody>
@@ -82,7 +96,7 @@ export default async function AdminOrdersPage({ searchParams }) {
                 <li key={o.id}>
                   <Link href={`/admin/orders/${o.id}`} className="flex items-center justify-between gap-3 p-4 active:bg-slate-50">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2"><span className="font-semibold">{o.orderNumber}</span><StatusBadge status={o.status} /></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{o.orderNumber}</span><StatusBadge status={o.status} /><PaymentBadge order={o} today={today} /></div>
                       <p className="truncate text-sm">{o.shopName}</p>
                       <p className="text-xs text-slate-500">{formatDateTime(o.createdAt, tz)} · {o.itemCount} items</p>
                     </div>
@@ -97,7 +111,7 @@ export default async function AdminOrdersPage({ searchParams }) {
 
       {items.length > 0 && (
         <div className="mt-4">
-          <Pagination basePath="/admin/orders" params={{ status: query.status === "open" ? "" : query.status, q: query.q }} page={meta.page} totalPages={meta.totalPages} total={meta.total} />
+          <Pagination basePath="/admin/orders" params={{ status: query.status === "open" ? "" : query.status, q: query.q, payment: query.payment, customerId: query.customerId }} page={meta.page} totalPages={meta.totalPages} total={meta.total} />
         </div>
       )}
     </>

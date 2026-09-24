@@ -40,6 +40,7 @@ export const companySettingsSchema = z
           .int("Whole numbers only.")
           .min(0, "Can't be negative.")
           .max(100_000, "That's too high."),
+        defaultCreditDays: z.number({ error: "Enter a number of days." }).int("Whole days only.").min(0, "Can't be negative.").max(365, "At most 365 days."),
       })
       .partial()
       .strict(),

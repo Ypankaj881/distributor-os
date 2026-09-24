@@ -4,6 +4,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/Badge";
 import Icon from "@/components/ui/Icon";
 import SalesChart from "@/components/admin/SalesChart";
+import PaymentBadge from "@/components/orders/PaymentBadge";
 import { requireAdminPage } from "@/server/auth/guards";
 import { getDashboard } from "@/server/services/dashboardService";
 import { formatINR } from "@/lib/money";
@@ -77,6 +78,24 @@ export default async function AdminDashboardPage() {
         </Link>
       </div>
 
+      {/* Money owed by shops (confirmed orders onwards, not fully paid) */}
+      <h2 className="mb-2 mt-6 text-sm font-semibold text-slate-700">Payments</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Link href="/admin/orders?status=all&payment=due" className="rounded-xl border border-slate-200 bg-white p-4 hover:border-brand-200">
+          <p className="text-sm text-slate-500">To collect</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatINR(d.receivables.outstanding)}</p>
+          <p className="text-xs text-slate-500">{d.receivables.orders} unpaid order{d.receivables.orders === 1 ? "" : "s"}</p>
+        </Link>
+        <Link
+          href="/admin/orders?status=all&payment=overdue"
+          className={cn("rounded-xl border bg-white p-4 hover:border-brand-200", d.receivables.overdue > 0 ? "border-red-200 bg-red-50" : "border-slate-200")}
+        >
+          <p className={cn("text-sm", d.receivables.overdue > 0 ? "font-medium text-red-800" : "text-slate-500")}>Overdue</p>
+          <p className={cn("mt-1 text-2xl font-semibold tabular-nums", d.receivables.overdue > 0 && "text-red-700")}>{formatINR(d.receivables.overdue)}</p>
+          <p className="text-xs text-slate-500">{d.receivables.overdueOrders} order{d.receivables.overdueOrders === 1 ? "" : "s"} past due date</p>
+        </Link>
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
         <Card className="p-5">
           <div className="mb-4 flex items-baseline justify-between">
@@ -133,6 +152,7 @@ export default async function AdminDashboardPage() {
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums">{formatINR(o.grandTotal)}</span>
                     <StatusBadge status={o.status} />
+                    <PaymentBadge order={o} today={d.today} className="hidden sm:inline" />
                     <Icon name="chevronRight" className="hidden size-4 text-slate-400 sm:block" />
                   </span>
                 </Link>

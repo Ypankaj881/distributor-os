@@ -31,9 +31,10 @@ import { createProduct } from "../src/server/services/productService.js";
 import { createCustomer } from "../src/server/services/customerService.js";
 import { setCustomerPrices } from "../src/server/services/pricingService.js";
 import { createOrder } from "../src/server/services/orderService.js";
-import { confirmOrder, transitionOrder, setPaymentStatus } from "../src/server/services/orderWorkflow.js";
+import { confirmOrder, transitionOrder } from "../src/server/services/orderWorkflow.js";
+import { recordPayment } from "../src/server/services/paymentService.js";
 import { ROLES } from "../src/lib/constants.js";
-import { addDays, startOfDay, todayIn } from "../src/lib/dates.js";
+import { addDays, dateKey, startOfDay, todayIn } from "../src/lib/dates.js";
 
 if (process.env.NODE_ENV === "production") {
   console.error("✘ Refusing to seed demo data with NODE_ENV=production.");
@@ -87,13 +88,13 @@ const PRODUCTS = [
   ["Fastrack", "FT-BODY", "Demo Body Spray 120ml", "piece", null, 120, 199, 18, 6, 110],
 ];
 
-// [code, shop, owner, phone, city]
+// [code, shop, owner, phone, city, credit days (null = company default)]
 const SHOPS = [
-  ["DEMO-001", "[DEMO] Sharma General Store", "Demo Rajesh Sharma", "9000000001", "Nagpur"],
-  ["DEMO-002", "[DEMO] Gupta Stationers", "Demo Anil Gupta", "9000000002", "Nagpur"],
-  ["DEMO-003", "[DEMO] Patel Cosmetics", "Demo Meena Patel", "9000000003", "Wardha"],
-  ["DEMO-004", "[DEMO] Verma Kirana", "Demo Sunil Verma", "9000000004", "Nagpur"],
-  ["DEMO-005", "[DEMO] Khan Gift Centre", "Demo Imran Khan", "9000000005", "Amravati"],
+  ["DEMO-001", "[DEMO] Sharma General Store", "Demo Rajesh Sharma", "9000000001", "Nagpur", 7],
+  ["DEMO-002", "[DEMO] Gupta Stationers", "Demo Anil Gupta", "9000000002", "Nagpur", 15],
+  ["DEMO-003", "[DEMO] Patel Cosmetics", "Demo Meena Patel", "9000000003", "Wardha", 0],
+  ["DEMO-004", "[DEMO] Verma Kirana", "Demo Sunil Verma", "9000000004", "Nagpur", 7],
+  ["DEMO-005", "[DEMO] Khan Gift Centre", "Demo Imran Khan", "9000000005", "Amravati", null],
 ];
 
 // Special prices per shop (₹). Future-dated ones show "upcoming" in the pricing grid.
@@ -108,7 +109,7 @@ const SCHEDULED = { shop: "DEMO-001", sku: "BV-CEO", price: 450, inDays: 7, forD
 // [shop code, days ago, [[sku, qty]…], final status, extras]
 const ORDERS = [
   ["DEMO-001", 12, [["BV-CEO", 10], ["NT-HB", 20], ["AP-PLAT", 10]], "DELIVERED", { paid: "PAID" }],
-  ["DEMO-002", 10, [["NT-HB", 50], ["NT-ERASER", 20], ["NT-SHARP", 20], ["AP-ABS", 30]], "DELIVERED", { paid: "PAID" }],
+  ["DEMO-002", 10, [["NT-HB", 50], ["NT-ERASER", 20], ["NT-SHARP", 20], ["AP-ABS", 30]], "DELIVERED", {}],
   ["DEMO-003", 8, [["BV-CEO", 6], ["BV-KLUB", 6], ["BV-GIFT", 4]], "DELIVERED", { paid: "PARTIAL" }],
   ["DEMO-005", 6, [["BV-GIFT", 5], ["FT-TRAVEL", 4], ["FT-A", 3]], "CANCELLED", { note: "Demo: shop closed for renovation" }],
   ["DEMO-004", 4, [["FT-DEO", 12], ["FT-BODY", 12], ["NT-HB", 10]], "DISPATCHED", { note: "Demo: sent with delivery van 1" }],
@@ -156,10 +157,10 @@ async function backdate(orderId, daysAgo, timeZone, hour) {
   const stepGap = 2 * 3600_000; // spread each later step 2 h apart
   const timeline = order.timeline.map((t, i) => ({ ...t, at: new Date(base.getTime() + i * stepGap) }));
   // createdAt is immutable in Mongoose, so write through the raw collection.
-  await Order.collection.updateOne(
-    { _id: order._id },
-    { $set: { createdAt: new Date(new Date(order.createdAt).getTime() + shift), updatedAt: timeline.at(-1).at, timeline } },
-  );
+  const set = { createdAt: new Date(new Date(order.createdAt).getTime() + shift), updatedAt: timeline.at(-1).at, timeline };
+  // Delivered orders fall due creditDays after the (backdated) delivery day.
+  if (order.status === "DELIVERED") set.dueOn = addDays(dateKey(timeline.at(-1).at, timeZone), order.creditDays ?? 0);
+  await Order.collection.updateOne({ _id: order._id }, { $set: set });
 }
 
 await runScript(async () => {
@@ -196,11 +197,12 @@ await runScript(async () => {
 
   // Shops + logins.
   const shopIds = {};
-  for (const [code, shopName, ownerName, phone, city] of SHOPS) {
+  for (const [code, shopName, ownerName, phone, city, creditDays] of SHOPS) {
     const address = { line1: "Demo address, Main Road", city, state: "Maharashtra", pincode: "440001" };
     const c = await createCustomer(companyId, {
       customerCode: code, shopName, ownerName, phone, password, email: "", gstin: "",
-      billingAddress: address, shippingAddress: address, creditLimit: paise(50000), paymentTerms: "Demo: 15 days", notes: "Demo customer",
+      billingAddress: address, shippingAddress: address, creditLimit: paise(50000), creditDays,
+      paymentTerms: creditDays == null ? "Demo: company default" : creditDays === 0 ? "Demo: cash on delivery" : `Demo: ${creditDays} days credit`, notes: "Demo customer",
     });
     shopIds[code] = c.id;
   }
@@ -241,8 +243,13 @@ await runScript(async () => {
         await transitionOrder(companyId, id, { status: step, note }, actor);
       }
     }
-    if (extra.paid) await setPaymentStatus(companyId, id, extra.paid);
     await backdate(id, daysAgo, timeZone, 10 + (daysAgo % 5));
+    // Payments are recorded like a real receipt, dated the delivery day.
+    if (extra.paid) {
+      const o = await Order.findById(id).lean();
+      const amount = extra.paid === "PAID" ? o.grandTotal : Math.round(o.grandTotal / 2);
+      await recordPayment(companyId, id, { amount, mode: extra.paid === "PAID" ? "UPI" : "CASH", paidOn: o.dueOn ? dateKey(o.timeline.at(-1).at, timeZone) : "", reference: "DEMO" }, actor, { timeZone });
+    }
   }
 
   // One product made inactive after use, to show "no longer available" handling.
