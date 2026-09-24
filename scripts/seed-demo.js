@@ -2,6 +2,8 @@
 //
 //   npm run seed:demo             remove old demo data, then create it fresh
 //   npm run seed:demo -- --remove remove demo data only
+//   npm run seed:demo:prod        same, on the PRODUCTION database (e.g. for a demo before go-live)
+//   npm run seed:demo:prod -- --remove
 //
 // Everything is created through the real services, so it obeys the same rules
 // as the app (resolved prices, stock deducted on confirmation, timelines…).
@@ -39,6 +41,14 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const REMOVE_ONLY = process.argv.includes("--remove");
+
+// Extra guard for the production database: only with an explicit flag
+// (npm run seed:demo:prod), so demo data can't end up there by accident.
+const dbName = process.env.MONGODB_DB ?? "";
+if (/_prod$/.test(dbName) && !process.argv.includes("--allow-production-db")) {
+  console.error(`✘ "${dbName}" looks like the PRODUCTION database. Use "npm run seed:demo:prod" if you really want demo data there.`);
+  process.exit(1);
+}
 const slug = env("DEFAULT_COMPANY_SLUG").toLowerCase();
 const password = REMOVE_ONLY ? null : env("SEED_DEMO_PASSWORD");
 if (password && password.length < 8) {

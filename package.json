@@ -19,7 +19,8 @@
     "db:check:prod": "node --env-file=.env.production.local scripts/check-db.js",
     "db:indexes:prod": "node --env-file=.env.production.local scripts/sync-indexes.js",
     "db:backup:prod": "node --env-file=.env.production.local scripts/backup.js",
-    "admin:create:prod": "node --env-file=.env.production.local scripts/create-admin.js"
+    "admin:create:prod": "node --env-file=.env.production.local scripts/create-admin.js",
+    "seed:demo:prod": "node --env-file=.env.production.local scripts/seed-demo.js --allow-production-db"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
