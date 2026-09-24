@@ -80,3 +80,32 @@ export const customerListQuerySchema = z.object({
   status: z.enum(["all", "active", "inactive"]).catch("all"),
   ...pagination,
 });
+
+// ---- The shop editing its own details ----
+
+export const shopProfileSchema = z
+  .object({
+    ownerName: optionalText(100, "Name"),
+    email: z.union([z.literal(""), z.email("Enter a valid email.").toLowerCase()]),
+  })
+  .partial()
+  .strict();
+
+const requiredText = (max, message) => z.string({ error: message }).trim().min(1, message).max(max, "That's too long.");
+
+const shopAddressFields = {
+  label: optionalText(40, "Label"),
+  line1: requiredText(200, "Enter the shop/building and street."),
+  line2: optionalText(200, "Address"),
+  landmark: optionalText(120, "Landmark"),
+  city: requiredText(80, "Enter the city or town."),
+  state: optionalText(80, "State"),
+  pincode: z.string({ error: "Enter the PIN code." }).trim().regex(/^\d{6}$/, "PIN code must be 6 digits."),
+  isDefault: z.boolean(),
+};
+
+export const shopAddressCreateSchema = z
+  .object({ ...shopAddressFields, label: shopAddressFields.label.default("Shop"), line2: shopAddressFields.line2.default(""), landmark: shopAddressFields.landmark.default(""), state: shopAddressFields.state.default(""), isDefault: shopAddressFields.isDefault.default(false) })
+  .strict();
+
+export const shopAddressUpdateSchema = z.object(shopAddressFields).partial().strict();

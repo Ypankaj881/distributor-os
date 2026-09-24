@@ -129,17 +129,23 @@ export default function CheckoutForm({ view, addresses }) {
       </div>
 
       <div className="safe-bottom sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 lg:top-20 lg:bottom-auto">
-        <Card className="space-y-3 p-4 shadow-lg lg:shadow-none">
-          <dl className="space-y-1 text-sm">
+        <Card className="space-y-3 p-3 shadow-lg lg:p-4 lg:shadow-none">
+          <dl className="hidden space-y-1 text-sm lg:block">
             <div className="flex justify-between"><dt className="text-slate-500">Items ({totals.unitCount})</dt><dd className="tabular-nums">{formatINR(totals.subtotal)}</dd></div>
             <div className="flex justify-between"><dt className="text-slate-500">GST{view.pricesIncludeGst ? " (included)" : ""}</dt><dd className="tabular-nums">{formatINR(totals.gst)}</dd></div>
             <div className="flex justify-between border-t border-slate-100 pt-2 text-base font-semibold"><dt>Total</dt><dd className="tabular-nums">{formatINR(totals.total)}</dd></div>
           </dl>
           {error && <Alert tone="error">{error}</Alert>}
-          <Button size="lg" className="w-full" onClick={placeOrder} loading={placing}>
-            {placing ? "Placing order…" : `Place order · ${formatINR(totals.total)}`}
-          </Button>
-          <p className="text-center text-xs text-slate-500">No online payment. The distributor confirms your order and delivers.</p>
+          <div className="flex items-center gap-3 lg:block">
+            <div className="min-w-0 lg:hidden">
+              <p className="text-xs text-slate-500">{totals.unitCount} items · GST {formatINR(totals.gst)}</p>
+              <p className="text-lg font-semibold tabular-nums">{formatINR(totals.total)}</p>
+            </div>
+            <Button size="lg" className="flex-1 lg:w-full" onClick={placeOrder} loading={placing}>
+              {placing ? "Placing…" : "Place order"}
+            </Button>
+          </div>
+          <p className="hidden text-center text-xs text-slate-500 lg:block">No online payment. The distributor confirms your order and delivers.</p>
         </Card>
       </div>
     </div>

@@ -24,7 +24,7 @@ export default function DeleteProductButton({ productId, productName }) {
 
   return (
     <div>
-      <Button variant="ghost" className="w-full text-red-600 hover:bg-red-50" onClick={onDelete} loading={busy}>
+      <Button variant="dangerGhost" className="w-full" onClick={onDelete} loading={busy}>
         Delete product
       </Button>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

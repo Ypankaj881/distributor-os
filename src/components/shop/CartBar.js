@@ -6,11 +6,12 @@ import Icon from "@/components/ui/Icon";
 import { useCart } from "./CartProvider";
 
 // Sticky "N items · View cart" bar just above the bottom nav on phones.
-// Hidden on the cart and checkout pages themselves.
+// Hidden on the cart and checkout pages, and on product pages (sticky Add bar there).
 export default function CartBar() {
   const { count } = useCart();
   const pathname = usePathname();
-  if (count === 0 || pathname.startsWith("/cart") || pathname.startsWith("/checkout")) return null;
+  const isProductPage = /^\/products\/[^/]+$/.test(pathname); // has its own sticky "Add" bar
+  if (count === 0 || isProductPage || pathname.startsWith("/cart") || pathname.startsWith("/checkout")) return null;
 
   return (
     <>

@@ -125,8 +125,7 @@ function BrandRow({ brand, onChanged, onError }) {
         <Button size="sm" variant="ghost" onClick={toggleActive} disabled={busy}>{brand.isActive ? "Hide" : "Show"}</Button>
         <Button
           size="sm"
-          variant="ghost"
-          className="text-red-600 hover:bg-red-50"
+          variant="dangerGhost"
           onClick={remove}
           disabled={busy || brand.productCount > 0}
           title={brand.productCount > 0 ? "Remove or move this brand's products first" : undefined}

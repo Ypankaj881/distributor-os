@@ -86,7 +86,8 @@ export default async function ShopOrderPage({ params }) {
           )}
         </div>
 
-        <div className="space-y-4">
+        {/* On phones the status comes first — it's why the shop opened the order. */}
+        <div className="order-first space-y-4 lg:order-none">
           <Card className="p-4">
             <h2 className="mb-3 font-semibold">Status</h2>
             <OrderTimeline status={order.status} timeline={order.timeline} timeZone={tz} />

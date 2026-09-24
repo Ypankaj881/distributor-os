@@ -60,7 +60,7 @@ export default function OrderActions({ order }) {
           <Button key={s} size="lg" onClick={() => change(s)} loading={busy === s} disabled={Boolean(busy)}>{FORWARD_LABEL[s]}</Button>
         ))}
         {stop.map((s) => (
-          <Button key={s} variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => change(s)} loading={busy === s} disabled={Boolean(busy)}>
+          <Button key={s} variant="dangerGhost" onClick={() => change(s)} loading={busy === s} disabled={Boolean(busy)}>
             {s === ORDER_STATUS.REJECTED ? "Reject order" : "Cancel order"}
           </Button>
         ))}

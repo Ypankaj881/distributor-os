@@ -8,7 +8,7 @@ import Textarea from "@/components/ui/Textarea";
 import Checkbox from "@/components/ui/Checkbox";
 import Card from "@/components/ui/Card";
 import Alert from "@/components/ui/Alert";
-import AddressFields, { EMPTY_ADDRESS } from "./AddressFields";
+import AddressFields, { EMPTY_ADDRESS } from "@/components/forms/AddressFields";
 import PasswordSetter from "./PasswordSetter";
 import LoginDetailsBox from "./LoginDetailsBox";
 import { api } from "@/lib/apiClient";

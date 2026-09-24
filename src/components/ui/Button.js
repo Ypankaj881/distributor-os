@@ -6,6 +6,10 @@ const VARIANTS = {
   primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 disabled:bg-brand-600/50",
   secondary: "bg-white text-slate-800 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 active:bg-slate-100 disabled:text-slate-400",
   ghost: "text-slate-700 hover:bg-slate-100 active:bg-slate-200 disabled:text-slate-400",
+  // Separate variants instead of "ghost" + a color class: two text colors on one
+  // element don't override by order in Tailwind, so the gray would win.
+  dangerGhost: "text-red-600 hover:bg-red-50 active:bg-red-100 disabled:text-red-300",
+  successGhost: "text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 disabled:text-emerald-300",
   danger: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-600/50",
 };
 

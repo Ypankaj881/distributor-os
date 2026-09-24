@@ -242,3 +242,82 @@ export async function getShopAddresses(companyId, customerId) {
     isDefault: Boolean(a.isDefault),
   }));
 }
+
+// ---------------------------------------------------------------------------
+// The SHOP managing its own profile and delivery addresses.
+// Shop name, phone (= login) and GSTIN stay with the distributor; the shop
+// may change its contact name, email and addresses. Past orders keep their
+// own address snapshot, so editing an address never changes an old order.
+// ---------------------------------------------------------------------------
+
+const MAX_ADDRESSES = 10;
+
+export async function getShopProfile(companyId, customerId) {
+  await connectDB();
+  const c = await requireCustomer(companyId, customerId);
+  return {
+    shopName: c.shopName,
+    ownerName: c.ownerName ?? "",
+    phone: c.phone,
+    email: c.email ?? "",
+    gstin: c.gstin ?? "",
+    customerCode: c.customerCode,
+  };
+}
+
+export async function updateShopProfile(companyId, customerId, { ownerName, email }) {
+  await connectDB();
+  await inTransaction(async (session) => {
+    const c = await requireCustomer(companyId, customerId, { session });
+    if (ownerName !== undefined) c.ownerName = ownerName;
+    if (email !== undefined) c.email = email;
+    c.searchText = buildCustomerSearchText(c);
+    await c.save({ session });
+    if (ownerName !== undefined) {
+      await User.updateMany({ companyId, customerId: c._id }, { $set: { name: ownerName || c.shopName } }, { session });
+    }
+  });
+  return getShopProfile(companyId, customerId);
+}
+
+export async function addShopAddress(companyId, customerId, { isDefault, ...address }) {
+  await connectDB();
+  const c = await requireCustomer(companyId, customerId);
+  if (c.shippingAddresses.length >= MAX_ADDRESSES) {
+    throw Errors.unprocessable(`You can save up to ${MAX_ADDRESSES} addresses.`, "TOO_MANY_ADDRESSES");
+  }
+  const makeDefault = isDefault || c.shippingAddresses.length === 0;
+  if (makeDefault) c.shippingAddresses.forEach((a) => (a.isDefault = false));
+  c.shippingAddresses.push({ label: address.label || "Shop", ...cleanAddress(address), isDefault: makeDefault });
+  await c.save();
+  return getShopAddresses(companyId, customerId);
+}
+
+export async function updateShopAddress(companyId, customerId, addressId, { isDefault, ...address }) {
+  await connectDB();
+  assertObjectId(addressId, "Address");
+  const c = await requireCustomer(companyId, customerId);
+  const a = c.shippingAddresses.id(addressId);
+  if (!a) throw Errors.notFound("Address");
+  a.set({ ...(address.label !== undefined && { label: address.label || "Shop" }), ...pick(address, ADDRESS_KEYS) });
+  if (isDefault) c.shippingAddresses.forEach((x) => (x.isDefault = String(x._id) === String(a._id)));
+  await c.save();
+  return getShopAddresses(companyId, customerId);
+}
+
+export async function deleteShopAddress(companyId, customerId, addressId) {
+  await connectDB();
+  assertObjectId(addressId, "Address");
+  const c = await requireCustomer(companyId, customerId);
+  const a = c.shippingAddresses.id(addressId);
+  if (!a) throw Errors.notFound("Address");
+  const wasDefault = a.isDefault;
+  a.deleteOne();
+  if (wasDefault && c.shippingAddresses.length) c.shippingAddresses[0].isDefault = true;
+  await c.save();
+  return getShopAddresses(companyId, customerId);
+}
+
+function pick(obj, keys) {
+  return Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
+}

@@ -79,8 +79,7 @@ export default function CustomerAccessCard({ customer, timeZone }) {
             Set new password
           </Button>
           <Button
-            variant="ghost"
-            className={customer.isActive ? "text-red-600 hover:bg-red-50" : "text-emerald-700 hover:bg-emerald-50"}
+            variant={customer.isActive ? "dangerGhost" : "successGhost"}
             onClick={toggleActive}
             loading={busy === "status"}
           >

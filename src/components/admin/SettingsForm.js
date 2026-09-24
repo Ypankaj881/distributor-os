@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import Alert from "@/components/ui/Alert";
-import AddressFields from "./AddressFields";
+import AddressFields from "@/components/forms/AddressFields";
 import { api } from "@/lib/apiClient";
 import { cn } from "@/components/ui/cn";
 

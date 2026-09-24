@@ -108,10 +108,10 @@ export default function CartView({ initialView }) {
         </ul>
       </Card>
 
-      {/* Order summary — sticky at the bottom on phones, a side card on desktop */}
+      {/* Order summary: one compact sticky row on phones, a full card on desktop */}
       <div className="safe-bottom sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 lg:top-20 lg:bottom-auto">
-        <Card className="space-y-3 p-4 shadow-lg lg:shadow-none">
-          <dl className="space-y-1 text-sm">
+        <Card className="space-y-3 p-3 shadow-lg lg:p-4 lg:shadow-none">
+          <dl className="hidden space-y-1 text-sm lg:block">
             <div className="flex justify-between"><dt className="text-slate-500">Items ({totals.unitCount})</dt><dd className="tabular-nums">{formatINR(totals.subtotal)}</dd></div>
             <div className="flex justify-between"><dt className="text-slate-500">GST{view.pricesIncludeGst ? " (included)" : ""}</dt><dd className="tabular-nums">{formatINR(totals.gst)}</dd></div>
             <div className="flex justify-between border-t border-slate-100 pt-2 text-base font-semibold">
@@ -120,10 +120,16 @@ export default function CartView({ initialView }) {
             </div>
           </dl>
           {blocked && <p className="text-sm text-red-600">Fix the items marked in red to continue.</p>}
-          <Button href={blocked || syncing ? undefined : "/checkout"} disabled={blocked || syncing} size="lg" className="w-full">
-            {syncing ? "Updating…" : "Continue to checkout"}
-          </Button>
-          <p className="text-center text-xs text-slate-500">Prices are checked again when you place the order.</p>
+          <div className="flex items-center gap-3 lg:block">
+            <div className="min-w-0 lg:hidden">
+              <p className="text-xs text-slate-500">{totals.unitCount} items · GST {formatINR(totals.gst)}</p>
+              <p className="flex items-center gap-1.5 text-lg font-semibold tabular-nums">{formatINR(totals.total)}{syncing && <Spinner className="text-slate-400" />}</p>
+            </div>
+            <Button href={blocked || syncing ? undefined : "/checkout"} disabled={blocked || syncing} size="lg" className="flex-1 lg:w-full">
+              {syncing ? "Updating…" : "Checkout"}
+            </Button>
+          </div>
+          <p className="hidden text-center text-xs text-slate-500 lg:block">Prices are checked again when you place the order.</p>
         </Card>
       </div>
     </div>

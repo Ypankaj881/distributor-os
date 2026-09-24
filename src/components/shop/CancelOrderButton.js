@@ -28,7 +28,7 @@ export default function CancelOrderButton({ orderId }) {
 
   if (!open) {
     return (
-      <Button variant="ghost" className="w-full text-red-600 hover:bg-red-50" onClick={() => setOpen(true)}>
+      <Button variant="dangerGhost" className="w-full" onClick={() => setOpen(true)}>
         Cancel order
       </Button>
     );

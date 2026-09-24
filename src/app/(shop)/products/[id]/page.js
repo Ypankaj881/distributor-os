@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import ProductImage from "@/components/ui/ProductImage";
 import PriceTag from "@/components/shop/PriceTag";
 import AvailabilityBadge from "@/components/shop/AvailabilityBadge";
-import AddToCartControl from "@/components/shop/AddToCartControl";
+import ProductBuyBar from "@/components/shop/ProductBuyBar";
 import { requireRetailerPage } from "@/server/auth/guards";
 import { getShopProduct } from "@/server/services/catalogService";
 import { AppError } from "@/server/http/errors";
@@ -31,7 +31,11 @@ export default async function ShopProductPage({ params }) {
       <Link href="/products" className="inline-block text-sm text-slate-500">← Products</Link>
 
       <div className="grid gap-5 md:grid-cols-[minmax(0,360px)_1fr]">
-        <ProductImage src={product.imageUrl} alt={product.name} className="aspect-square w-full max-w-sm text-4xl md:max-w-none" />
+        <ProductImage
+          src={product.imageUrl}
+          alt={product.name}
+          className={product.imageUrl ? "mx-auto aspect-square w-full max-w-xs md:max-w-none" : "h-28 w-full text-3xl md:aspect-square md:h-auto"}
+        />
 
         <div className="space-y-4">
           <div>
@@ -54,10 +58,7 @@ export default async function ShopProductPage({ params }) {
             <Row label="GST" value={`${product.gstRate}%${product.pricesIncludeGst ? " (included in price)" : " (added at checkout)"}`} />
           </Card>
 
-          <div className="space-y-2">
-            <AddToCartControl product={product} size="lg" className="w-full [&>input]:flex-1" />
-            {product.minOrderQty > 1 && <p className="text-xs text-slate-500">Minimum {product.minOrderQty} {product.unit} per order.</p>}
-          </div>
+          <ProductBuyBar product={product} />
 
           {product.description && (
             <div>
