@@ -53,6 +53,9 @@ export default async function CustomerDetailsPage({ params }) {
             </Button>
           </Card>
           <Card className="p-5">
+            {customer.isActive && (
+              <Button className="mb-4 w-full" href={`/admin/orders/new?customerId=${customer.id}`}>Create order for this shop</Button>
+            )}
             <div className="mb-2 flex items-baseline justify-between">
               <h2 className="font-semibold">Recent orders</h2>
               {recent.total > 0 && (

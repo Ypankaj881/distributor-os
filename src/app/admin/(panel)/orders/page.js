@@ -5,6 +5,8 @@ import Badge, { StatusBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
 import ListFilters from "@/components/admin/ListFilters";
+import Button from "@/components/ui/Button";
+import Icon from "@/components/ui/Icon";
 import OrderStatusTabs from "@/components/admin/OrderStatusTabs";
 import { requireAdminPage } from "@/server/auth/guards";
 import { listAdminOrders, countOrdersByStatus } from "@/server/services/adminOrderService";
@@ -30,7 +32,11 @@ export default async function AdminOrdersPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Orders" description={counts.NEW > 0 ? `${counts.NEW} new order${counts.NEW === 1 ? "" : "s"} waiting for confirmation` : "All caught up."} />
+      <PageHeader
+        title="Orders"
+        description={counts.NEW > 0 ? `${counts.NEW} new order${counts.NEW === 1 ? "" : "s"} waiting for confirmation` : "All caught up."}
+        actions={<Button href="/admin/orders/new"><Icon name="plus" className="size-4" />New order</Button>}
+      />
 
       <div className="mb-4 space-y-3">
         <OrderStatusTabs active={query.status} counts={counts} q={query.q} />

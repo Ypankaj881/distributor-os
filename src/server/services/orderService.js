@@ -7,6 +7,7 @@ import { AppError, Errors } from "../http/errors.js";
 import { assertObjectId, pageMeta, toId, toIso } from "../utils.js";
 import { requireCustomer } from "./customerService.js";
 import { priceItems, clearCart } from "./cartService.js";
+import { confirmOrder } from "./orderWorkflow.js";
 import { ORDER_STATUS, ROLES } from "../../lib/constants.js";
 
 const ORDER_NUMBER_OFFSET = 1000; // first order is CH-1001, not CH-1
@@ -40,6 +41,7 @@ export async function createOrder({
   idempotencyKey,
   expectedTotal,
   clearCartAfter = false,
+  placedNote = "Order placed",
 }) {
   await connectDB();
 
@@ -112,7 +114,7 @@ export async function createOrder({
     grandTotal: priced.totals.total,
     notes,
     status: ORDER_STATUS.NEW,
-    timeline: [{ status: ORDER_STATUS.NEW, at: now, byUserId: actor.userId, byName: actor.name, byRole: actor.role, note: "Order placed" }],
+    timeline: [{ status: ORDER_STATUS.NEW, at: now, byUserId: actor.userId, byName: actor.name, byRole: actor.role, note: placedNote }],
   };
 
   // Order number + order + (optionally) emptying the cart: all or nothing.
@@ -249,4 +251,46 @@ export async function getShopOrder(companyId, customerId, orderId) {
   const order = await Order.findOne({ _id: orderId, companyId, customerId }).lean();
   if (!order) throw Errors.notFound("Order");
   return toShopOrderDTO(order);
+}
+
+// ---------------------------------------------------------------------------
+// Admin: order on behalf of a shop (phone / WhatsApp orders)
+// ---------------------------------------------------------------------------
+
+// Prices the lines exactly as the SHOP would be charged (its own prices), and
+// returns its delivery addresses — used live while the admin builds the order.
+export async function previewOrderForShop(auth, { customerId, items }) {
+  await connectDB();
+  const customer = await requireCustomer(auth.companyId, customerId);
+  const priced = await priceItems(auth.companyId, customer._id, items, auth.company.settings);
+  const addresses = customer.shippingAddresses.map((a) => ({
+    id: toId(a._id),
+    label: a.label || "Shop",
+    text: [a.line1, a.line2, a.landmark, a.city, a.state, a.pincode].filter(Boolean).join(", "),
+    isDefault: Boolean(a.isDefault),
+  }));
+  return { ...priced, addresses, customer: { id: toId(customer._id), shopName: customer.shopName, isActive: customer.isActive } };
+}
+
+// Creates the order through the same createOrder() as the shop's checkout.
+// The shop's cart is NOT touched. Optionally confirms it straight away.
+export async function createOrderForShop(auth, { customerId, items, addressId, notes, idempotencyKey, expectedTotal, confirmNow }) {
+  const actor = { userId: auth.userId, name: auth.name, role: auth.role };
+  const { order, duplicate } = await createOrder({
+    companyId: auth.companyId,
+    customerId,
+    items,
+    settings: auth.company.settings,
+    actor,
+    source: "ADMIN",
+    addressId,
+    notes,
+    idempotencyKey,
+    expectedTotal,
+    placedNote: "Placed by the distributor for the shop (phone / WhatsApp order)",
+  });
+  if (confirmNow && !duplicate) {
+    await confirmOrder(auth.companyId, String(order._id), {}, actor, auth.company.settings);
+  }
+  return { id: toId(order._id), orderNumber: order.orderNumber, duplicate };
 }

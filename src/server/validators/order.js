@@ -62,3 +62,27 @@ export const orderListQuerySchema = z.object({
   ...pagination,
   limit: z.coerce.number().int().min(1).max(50).catch(20),
 });
+
+const orderLines = z
+  .array(
+    z.object({
+      productId: objectId("product"),
+      quantity: z.number({ error: "Enter a quantity." }).int("Whole numbers only.").min(1, "At least 1.").max(100_000),
+    }),
+  )
+  .max(200, "An order can have up to 200 products.");
+
+export const adminOrderPreviewSchema = z.object({
+  customerId: objectId("shop"),
+  items: orderLines.default([]),
+});
+
+export const adminOrderCreateSchema = z.object({
+  customerId: objectId("shop"),
+  items: orderLines.min(1, "Add at least one product."),
+  addressId: objectId("delivery address").optional(),
+  notes: z.string().trim().max(500).default(""),
+  idempotencyKey: z.string().regex(/^[A-Za-z0-9-]{16,64}$/, "Invalid key."),
+  expectedTotal: z.number().int().min(0).optional(),
+  confirmNow: z.boolean().default(false),
+});
