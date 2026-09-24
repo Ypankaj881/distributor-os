@@ -16,8 +16,9 @@ export const config = {
 
   mongo() {
     const uri = required("MONGODB_URI");
-    if (uri.includes("<db_password>")) {
-      throw new Error("MONGODB_URI still contains the <db_password> placeholder. Put your Atlas user's password in .env.local.");
+    // Catches any leftover template value such as <db_password> or <prod_password>.
+    if (/<[a-z_]+>/i.test(uri)) {
+      throw new Error("MONGODB_URI still contains a <placeholder>. Replace it with the real database password.");
     }
     return { uri, dbName: process.env.MONGODB_DB?.trim() || "distributor_os" };
   },
