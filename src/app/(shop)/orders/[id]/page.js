@@ -3,6 +3,8 @@ import Card from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
 import OrderTimeline from "@/components/orders/OrderTimeline";
 import ShareOrderButton from "@/components/shop/ShareOrderButton";
+import CancelOrderButton from "@/components/shop/CancelOrderButton";
+import { ORDER_STATUS } from "@/lib/constants";
 import { requireRetailerPage } from "@/server/auth/guards";
 import { formatINR } from "@/lib/money";
 import { formatDateTime } from "@/lib/dates";
@@ -89,6 +91,7 @@ export default async function ShopOrderPage({ params }) {
             <OrderTimeline status={order.status} timeline={order.timeline} timeZone={tz} />
           </Card>
           <ShareOrderButton order={order} distributorPhone={auth.company.phone} className="w-full" />
+          {order.status === ORDER_STATUS.NEW && <CancelOrderButton orderId={order.id} />}
         </div>
       </div>
     </div>

@@ -2,11 +2,14 @@ import Link from "next/link";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Badge from "@/components/ui/Badge";
+import Badge, { StatusBadge } from "@/components/ui/Badge";
 import CustomerForm from "@/components/admin/CustomerForm";
 import CustomerAccessCard from "@/components/admin/CustomerAccessCard";
 import { requireAdminPage } from "@/server/auth/guards";
 import { countSpecialPrices } from "@/server/services/pricingService";
+import { recentOrdersForCustomer } from "@/server/services/adminOrderService";
+import { formatINR } from "@/lib/money";
+import { formatDate } from "@/lib/dates";
 import { loadCustomerOr404 } from "./loadCustomer";
 
 export const metadata = { title: "Customer" };
@@ -15,7 +18,10 @@ export default async function CustomerDetailsPage({ params }) {
   const auth = await requireAdminPage();
   const { id } = await params;
   const customer = await loadCustomerOr404(auth.companyId, id);
-  const specialCount = await countSpecialPrices(auth.companyId, customer.id);
+  const [specialCount, recent] = await Promise.all([
+    countSpecialPrices(auth.companyId, customer.id),
+    recentOrdersForCustomer(auth.companyId, customer.id),
+  ]);
   const timeZone = auth.company.settings?.timezone ?? "Asia/Kolkata";
 
   return (
@@ -47,8 +53,32 @@ export default async function CustomerDetailsPage({ params }) {
             </Button>
           </Card>
           <Card className="p-5">
-            <h2 className="font-semibold">Orders</h2>
-            <p className="mt-1 text-sm text-slate-500">Order history will appear here once ordering is live.</p>
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="font-semibold">Recent orders</h2>
+              {recent.total > 0 && (
+                <Link href={`/admin/orders?status=all&customerId=${customer.id}`} className="text-sm font-medium text-brand-600 hover:underline">All {recent.total}</Link>
+              )}
+            </div>
+            {recent.items.length === 0 ? (
+              <p className="text-sm text-slate-500">No orders yet.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {recent.items.map((o) => (
+                  <li key={o.id}>
+                    <Link href={`/admin/orders/${o.id}`} className="flex items-center justify-between gap-2 py-2 text-sm hover:text-brand-700">
+                      <span>
+                        <span className="font-medium">{o.orderNumber}</span>
+                        <span className="block text-xs text-slate-500">{formatDate(o.createdAt, timeZone)}</span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="tabular-nums">{formatINR(o.grandTotal)}</span>
+                        <StatusBadge status={o.status} />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </div>
       </div>

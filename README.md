@@ -92,7 +92,28 @@ scripts/               CLI scripts (db check, seed, create admin)
 | `GET/PUT /api/admin/customers/:id/prices` | Pricing grid (`q`, `brandId`, `view=all\|special`) / set many prices |
 | `DELETE /api/admin/customers/:id/prices/:productId` | Remove special price → default applies |
 
+| `GET /api/admin/orders` | List (`status=all\|open\|closed\|NEW…`, `q`, `customerId`, `from`, `to`, `page`) + counts per status |
+| `GET /api/admin/orders/:id` | Order with timeline, allowed next statuses and (for NEW) current stock |
+| `POST /api/admin/orders/:id/confirm` | `{ quantities?: [{ itemId, confirmedQty }], note? }` — NEW → CONFIRMED, deducts stock |
+| `PATCH /api/admin/orders/:id/status` | `{ status, note }` — PACKED / DISPATCHED / DELIVERED / CANCELLED / REJECTED |
+| `PATCH /api/admin/orders/:id/payment` | `{ paymentStatus: UNPAID\|PARTIAL\|PAID }` |
+
 Records of another company always answer **404**, exactly like missing records.
+
+## Order lifecycle & stock
+
+```
+NEW ──confirm──▶ CONFIRMED ──▶ PACKED ──▶ DISPATCHED ──▶ DELIVERED
+ ├──▶ REJECTED       └──▶ CANCELLED ◀─────┘
+ └──▶ CANCELLED (also by the shop itself while NEW)
+```
+
+- **Placing** an order does not touch stock. **Confirming** deducts the confirmed quantities
+  (the admin may lower them = partial supply; `cancelledQty = ordered − confirmed`), all in one
+  transaction: if any line lacks stock, nothing is deducted.
+- **Cancelling** a confirmed/packed order returns the confirmed quantities to stock.
+- Every change appends to the order's `timeline` (status, time, who, note). Cancel/reject need a reason.
+- `src/server/services/orderWorkflow.js` is the only place that changes order status.
 
 ## Pricing rule
 

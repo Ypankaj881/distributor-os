@@ -12,7 +12,8 @@ import Spinner from "@/components/ui/Spinner";
 // selects: [{ name: "status", label: "Status", value: "all", defaultValue: "all",
 //             options: [{ value: "all", label: "All status" }, …] }]
 // beforeNavigate: optional () => boolean — return false to cancel (unsaved changes).
-export default function ListFilters({ basePath, search, selects = [], beforeNavigate }) {
+// baseParams: fixed params always kept in the URL (e.g. the active status tab).
+export default function ListFilters({ basePath, baseParams = {}, search, selects = [], beforeNavigate }) {
   const router = useRouter();
   const [text, setText] = useState(search?.value ?? "");
   const [isPending, startTransition] = useTransition();
@@ -22,6 +23,7 @@ export default function ListFilters({ basePath, search, selects = [], beforeNavi
     if (beforeNavigate && !beforeNavigate()) return false;
     const values = { q: text, ...Object.fromEntries(selects.map((s) => [s.name, s.value])), ...changes };
     const sp = new URLSearchParams();
+    for (const [k, v] of Object.entries(baseParams)) if (v) sp.set(k, v);
     if (values.q?.trim()) sp.set("q", values.q.trim());
     for (const s of selects) {
       const v = values[s.name];
