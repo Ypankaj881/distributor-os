@@ -152,6 +152,9 @@ NEW ──confirm──▶ CONFIRMED ──▶ PACKED ──▶ DISPATCHED ─�
   order list **Payment** filter (money due / overdue / unpaid / partly paid / paid), and the shop's own
   Account page ("Amount due").
 - Rules live in `src/lib/payments.js` (shared by server and UI) and `src/server/services/paymentService.js`.
+- Dashboard **Sales & payments**: sales (orders except cancelled/rejected), received, remaining — this month and
+  all time. "Remaining" includes new orders not yet confirmed; "To collect" counts confirmed orders only.
+- Orders created before payments existed: `npm run migrate:payments` / `migrate:payments:prod` (safe to re-run).
 
 ## Pricing rule
 

@@ -12,12 +12,17 @@ const CLOSED = [ORDER_STATUS.CANCELLED, ORDER_STATUS.REJECTED];
 // Orders that count as money owed: confirmed onwards (NEW isn't agreed yet).
 const BILLABLE = [ORDER_STATUS.CONFIRMED, ORDER_STATUS.PACKED, ORDER_STATUS.DISPATCHED, ORDER_STATUS.DELIVERED];
 
+// Orders created before payments existed have no amountPaid / payments
+// fields — treat missing as 0 / [] everywhere, or sums and $add turn into null.
+const PAID = { $ifNull: ["$amountPaid", 0] };
+const PAYMENTS = { $ifNull: ["$payments", []] };
+
 // Mongo expression: status derived from amountPaid vs grandTotal (same rule as lib/payments.js).
 const statusExpr = {
   $switch: {
     branches: [
-      { case: { $lte: ["$amountPaid", 0] }, then: "UNPAID" },
-      { case: { $gte: ["$amountPaid", "$grandTotal"] }, then: "PAID" },
+      { case: { $lte: [PAID, 0] }, then: "UNPAID" },
+      { case: { $gte: [PAID, "$grandTotal"] }, then: "PAID" },
     ],
     default: "PARTIAL",
   },
@@ -48,10 +53,10 @@ export async function recordPayment(companyId, orderId, { amount, mode, paidOn, 
       _id: orderId,
       companyId,
       status: { $nin: CLOSED },
-      $expr: { $lte: [{ $add: ["$amountPaid", amount] }, "$grandTotal"] },
+      $expr: { $lte: [{ $add: [PAID, amount] }, "$grandTotal"] },
     },
     [
-      { $set: { amountPaid: { $add: ["$amountPaid", amount] }, payments: { $concatArrays: ["$payments", [payment]] } } },
+      { $set: { amountPaid: { $add: [PAID, amount] }, payments: { $concatArrays: [PAYMENTS, [payment]] } } },
       { $set: { paymentStatus: statusExpr } },
     ],
     { returnDocument: "after", updatePipeline: true },
@@ -61,7 +66,7 @@ export async function recordPayment(companyId, orderId, { amount, mode, paidOn, 
     const order = await Order.findOne({ _id: orderId, companyId }).select("status grandTotal amountPaid").lean();
     if (!order) throw Errors.notFound("Order");
     if (CLOSED.includes(order.status)) throw new AppError("This order is cancelled — there is nothing to collect.", { status: 409, code: "ORDER_CLOSED" });
-    const balance = order.grandTotal - order.amountPaid;
+    const balance = order.grandTotal - (order.amountPaid ?? 0);
     throw Errors.validation(
       { amount: balance > 0 ? `Balance is only ${formatINR(balance)}.` : "This order is already fully paid." },
       "Amount is more than the balance due.",
@@ -134,8 +139,8 @@ function balancePipeline({ companyId, customerId }, today) {
     paymentStatus: { $ne: "PAID" },
   };
   if (customerId) match.customerId = new mongoose.Types.ObjectId(String(customerId));
-  const balance = { $subtract: ["$grandTotal", "$amountPaid"] };
-  const overdue = { $and: [{ $ne: ["$dueOn", null] }, { $lt: ["$dueOn", today] }] };
+  const balance = { $subtract: ["$grandTotal", PAID] };
+  const overdue = { $and: [{ $gt: ["$dueOn", null] }, { $lt: ["$dueOn", today] }] }; // $gt null also skips a missing field
   return [
     { $match: match },
     {

@@ -145,3 +145,16 @@ describe("overdue & outstanding", () => {
     assert.equal(o.dueOn, todayIn(TZ), "0 days = due on delivery");
   });
 });
+
+describe("orders created before payments existed", () => {
+  test("missing amountPaid/payments count as 0 in balances and can still be paid", async () => {
+    await Order.deleteMany({ companyId: co._id });
+    const id = await deliveredOrder(shop, 4); // ₹400
+    // Simulate a legacy document (fields didn't exist yet).
+    await Order.collection.updateOne({ _id: new Order.base.Types.ObjectId(id) }, { $unset: { amountPaid: "", payments: "" } });
+    const bal = await companyReceivables(co._id, { timeZone: TZ });
+    assert.equal(bal.outstanding, 40000, "full balance counted");
+    const o = await pay(id, 15000);
+    assert.deepEqual([o.amountPaid, o.paymentStatus, o.payments.length], [15000, "PARTIAL", 1]);
+  });
+});

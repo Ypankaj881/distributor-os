@@ -20,7 +20,9 @@
     "db:indexes:prod": "node --env-file=.env.production.local scripts/sync-indexes.js",
     "db:backup:prod": "node --env-file=.env.production.local scripts/backup.js",
     "admin:create:prod": "node --env-file=.env.production.local scripts/create-admin.js",
-    "seed:demo:prod": "node --env-file=.env.production.local scripts/seed-demo.js --allow-production-db"
+    "seed:demo:prod": "node --env-file=.env.production.local scripts/seed-demo.js --allow-production-db",
+    "migrate:payments": "node --env-file=.env.local scripts/migrate-payments.js",
+    "migrate:payments:prod": "node --env-file=.env.production.local scripts/migrate-payments.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
