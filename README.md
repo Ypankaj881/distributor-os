@@ -25,6 +25,9 @@ so more distributors can be onboarded later without data mixing.
 | `npm run db:check` | Test the MongoDB connection |
 | `npm run admin:create` | Create the company + an admin, or reset an admin's password |
 | `npm run dev:retailer` | DEV ONLY: create a demo shop + retailer login |
+| `npm run seed:demo` | DEV ONLY: reset demo data (brands, 24 products, 5 shops, prices, 9 orders) |
+| `npm run seed:demo -- --remove` | Remove all demo data (real data is untouched) |
+| `npm test` / `npm run test:unit` | Full test suite / fast unit tests |
 | `npm run search:rebuild` | Rebuild product/customer search text (after imports or manual DB edits) |
 
 ## Creating or resetting the admin
@@ -40,6 +43,23 @@ npm run admin:create
 ```
 
 Running it again with the same `ADMIN_EMAIL` **resets** the password and logs that admin out everywhere.
+
+## Demo data
+
+```powershell
+$env:SEED_DEMO_PASSWORD="choose-a-demo-password"   # password for all 5 demo shop logins
+npm run seed:demo
+```
+
+Creates, through the real services: brands Bellavita, Natraj, Apsara, Fastrack; 24 placeholder
+products (SKU `DEMO-…`, round placeholder prices — **not real prices**; some low / out of stock,
+one inactive, some with minimum quantities); 5 shops `[DEMO] …` with logins `9000000001`–`9000000005`;
+special prices for 4 shops plus one scheduled future price; 9 orders over the last 12 days in every
+status (delivered, cancelled, dispatched, packed, partially confirmed, new) with payment states.
+
+Running it again **resets** the demo data. `npm run seed:demo -- --remove` deletes only records
+marked as demo (`DEMO-` codes/SKUs) and seeded brands left without products. It refuses to run
+with `NODE_ENV=production`. It needs an admin to exist (`npm run admin:create`).
 
 ## How authentication works
 
