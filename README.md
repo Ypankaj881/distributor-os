@@ -84,14 +84,12 @@ scripts/               CLI scripts (db check, seed, create admin)
 | `GET/POST /api/admin/products` | List (`q`, `brandId`, `status`, `stock`, `page`, `limit`) / create |
 | `GET/PATCH/DELETE /api/admin/products/:id` | Read / update / soft delete |
 | `POST /api/admin/products/:id/stock` | `{ change: 50 }` or `{ change: -3 }` — atomic stock adjustment |
-
 | `GET/POST /api/admin/customers` | List (`q`, `status`, `page`) / create shop **and** its login |
 | `GET/PATCH /api/admin/customers/:id` | Read / update (changing phone changes the login ID) |
 | `PATCH /api/admin/customers/:id/status` | `{ isActive }` — deactivating logs the shop out everywhere |
 | `POST /api/admin/customers/:id/password` | `{ password }` — admin sets a new password |
 | `GET/PUT /api/admin/customers/:id/prices` | Pricing grid (`q`, `brandId`, `view=all\|special`) / set many prices |
 | `DELETE /api/admin/customers/:id/prices/:productId` | Remove special price → default applies |
-
 | `GET /api/admin/orders` | List (`status=all\|open\|closed\|NEW…`, `q`, `customerId`, `from`, `to`, `page`) + counts per status |
 | `GET /api/admin/orders/:id` | Order with timeline, allowed next statuses and (for NEW) current stock |
 | `POST /api/admin/orders/:id/confirm` | `{ quantities?: [{ itemId, confirmedQty }], note? }` — NEW → CONFIRMED, deducts stock |
@@ -130,6 +128,42 @@ What a shop pays for a product (before GST) is decided in ONE place,
 - Scheduled prices: a price can start on a future date and/or end on a date
   (inclusive, in the company's timezone). When it ends, the previous open-ended price applies again.
 - Special prices can't exceed MRP. Retailers only ever receive their own resolved price.
+
+## Testing
+
+```bash
+npm test          # full suite: unit + integration (≈30 s, needs MongoDB access)
+npm run test:unit # fast, no database
+```
+
+- Uses Node's built-in test runner (`node:test`) — no extra dependencies.
+- Integration tests call the real services against a **separate database**
+  (`MONGODB_DB=distributor_os_test` from `.env.test`), dropped before and after each file.
+  The helper refuses to run against any database whose name doesn't end in `_test`.
+- Covered: pricing rule (default / special / scheduled / removed), tenant isolation across
+  products, brands, customers, prices, catalog and orders; cart totals & GST, MOQ, stock,
+  parallel cart writes; order snapshots, idempotent double-submit, price-changed check,
+  order numbering; confirm with stock (atomic rollback, partial supply, parallel confirms),
+  allowed transitions, restock on cancel, shop cancel rules; reorder; login, lockout,
+  forged tokens, session revocation, password change.
+- `tests/unit/route-guards.test.js` fails if any API route lacks its `requireAdmin()` /
+  `requireRetailer()` / `requireAuth()` guard or `withApi()` wrapper.
+
+## Security summary
+
+| Area | Measure |
+|---|---|
+| Passwords | bcrypt (cost 12); never logged or returned |
+| Sessions | signed JWT in httpOnly, SameSite=Lax, Secure (prod) cookie; user re-checked in DB every request; `tokenVersion` revokes all sessions |
+| Login abuse | 5 failures / account and 30 / IP per 15 min; same error + timing for unknown user vs wrong password |
+| Authorization | role guard on every API route (enforced by a test) and page; admin and shop APIs are separate |
+| Tenant isolation | every query filters by the session's `companyId`; other companies' records answer 404; `strictQuery: "throw"` so a mistyped filter can't match everything |
+| Prices | the browser never sends prices or totals; the server recalculates them everywhere; shops only ever receive their own resolved price |
+| Input | zod validation on every request, `.strict()` on updates, 1 MB body limit, regex input escaped, ObjectIds validated |
+| CSRF | SameSite cookies + cross-origin write requests blocked in `proxy.js` |
+| Output | React escaping (no `dangerouslySetInnerHTML`, enforced by a test); https-only image URLs; errors never include stack traces |
+| Headers | nosniff, frame DENY, referrer policy, permissions policy, HSTS in production |
+| Dependencies | `npm audit --omit=dev` → 0 known vulnerabilities (at time of writing) |
 
 ## Conventions
 

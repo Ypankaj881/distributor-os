@@ -10,7 +10,9 @@
     "db:check": "node --env-file=.env.local scripts/check-db.js",
     "admin:create": "node --env-file=.env.local scripts/create-admin.js",
     "dev:retailer": "node --env-file=.env.local scripts/dev-create-retailer.js",
-    "search:rebuild": "node --env-file=.env.local scripts/rebuild-search.js"
+    "search:rebuild": "node --env-file=.env.local scripts/rebuild-search.js",
+    "test": "node --env-file=.env.local --env-file=.env.test --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "test:unit": "node --test \"tests/unit/*.test.js\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

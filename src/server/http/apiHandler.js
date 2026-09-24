@@ -43,6 +43,12 @@ function toErrorResponse(err) {
     return fail(Errors.conflict("A record with these details already exists.", fields));
   }
 
+  // Database unreachable (network blip, Atlas IP not allowed, cluster down).
+  if (/MongooseServerSelectionError|MongoServerSelectionError|MongoNetworkError|MongoNetworkTimeoutError/.test(err?.name ?? "")) {
+    console.error("[api] Database unavailable:", err.message);
+    return fail({ status: 503, code: "SERVICE_UNAVAILABLE", message: "The service is temporarily unavailable. Please try again in a minute." });
+  }
+
   // Unknown error: log the details server-side, tell the user nothing sensitive.
   console.error("[api] Unhandled error:", err);
   return fail({ status: 500, code: "INTERNAL_ERROR", message: "Something went wrong. Please try again." });
@@ -62,10 +68,16 @@ function zodFields(err) {
   return fields;
 }
 
-// Parses a JSON body, turning malformed JSON into a clean 400.
+const MAX_BODY_BYTES = 1_000_000; // 1 MB — far above any real request (a 200-line price update is ~20 KB)
+
+// Parses a JSON body. Oversized bodies → 413, malformed JSON → 400.
 export async function readJson(req) {
+  const declared = Number(req.headers.get("content-length") ?? 0);
+  if (declared > MAX_BODY_BYTES) throw new AppError("Request is too large.", { status: 413, code: "PAYLOAD_TOO_LARGE" });
+  const text = await req.text();
+  if (text.length > MAX_BODY_BYTES) throw new AppError("Request is too large.", { status: 413, code: "PAYLOAD_TOO_LARGE" });
   try {
-    return await req.json();
+    return JSON.parse(text);
   } catch {
     throw Errors.badRequest("Request body must be valid JSON.");
   }

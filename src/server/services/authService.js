@@ -67,7 +67,7 @@ export async function login({ companySlug, portal, identifier, password, ip }) {
   }
 
   await clearFailures(accountKey);
-  await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
+  await User.updateOne({ _id: user._id, companyId: company._id }, { $set: { lastLoginAt: new Date() } });
 
   return {
     token: await encodeSession(user),

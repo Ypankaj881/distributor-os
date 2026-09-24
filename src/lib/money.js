@@ -13,16 +13,13 @@ export function fromPaise(paise) {
   return (Number(paise) || 0) / 100;
 }
 
-const inr = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
+const inrWhole = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+const inrPaise = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// formatINR(1900000) → "₹19,000"
+// formatINR(1900000) → "₹19,000"   formatINR(73160) → "₹731.60" (never "₹731.6")
 export function formatINR(paise) {
-  return inr.format(fromPaise(paise));
+  const p = Number(paise) || 0;
+  return (p % 100 === 0 ? inrWhole : inrPaise).format(p / 100);
 }
 
 // GST for a line, rounded to the nearest paisa. rate is a percentage (e.g. 18).

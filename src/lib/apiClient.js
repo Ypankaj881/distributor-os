@@ -30,11 +30,21 @@ async function request(method, url, body) {
 
   if (res.ok && json?.success) return { ok: true, status: res.status, data: json.data, meta: json.meta };
 
-  return {
-    ok: false,
-    status: res.status,
-    error: json?.error ?? { code: "UNKNOWN", message: "Something went wrong. Please try again." },
-  };
+  const error = json?.error ?? { code: "UNKNOWN", message: "Something went wrong. Please try again." };
+
+  // Session expired / logged out elsewhere (password reset, deactivated):
+  // send the user to the right login page, then back to where they were.
+  if (res.status === 401 && error.code === "UNAUTHORIZED" && typeof window !== "undefined") {
+    const here = window.location.pathname + window.location.search;
+    const loginPath = here.startsWith("/admin") ? "/admin/login" : "/login";
+    // A full page load on purpose: it wipes all in-memory state (cart, forms)
+    // that belonged to the ended session. This helper isn't a component, so
+    // there's no router to use anyway.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(`${loginPath}?next=${encodeURIComponent(here)}`);
+  }
+
+  return { ok: false, status: res.status, error };
 }
 
 export const api = {
