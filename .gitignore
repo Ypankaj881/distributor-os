@@ -43,3 +43,6 @@ next-env.d.ts
 # allow the env template to be committed
 !.env.example
 !.env.test
+
+# local database backups (contain customer data)
+/backups

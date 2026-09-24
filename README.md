@@ -28,6 +28,8 @@ so more distributors can be onboarded later without data mixing.
 | `npm run seed:demo` | DEV ONLY: reset demo data (brands, 24 products, 5 shops, prices, 9 orders) |
 | `npm run seed:demo -- --remove` | Remove all demo data (real data is untouched) |
 | `npm test` / `npm run test:unit` | Full test suite / fast unit tests |
+| `npm run db:indexes` / `db:backup` | Create/verify MongoDB indexes / export all collections to `backups/` |
+| `npm run *:prod` | `db:check`, `db:indexes`, `db:backup`, `admin:create` against production (`.env.production.local`) |
 | `npm run search:rebuild` | Rebuild product/customer search text (after imports or manual DB edits) |
 
 ## Creating or resetting the admin
@@ -43,6 +45,11 @@ npm run admin:create
 ```
 
 Running it again with the same `ADMIN_EMAIL` **resets** the password and logs that admin out everywhere.
+
+## Deployment
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** — Vercel + Atlas step by step, custom domain, the public-site
+link, operations (deploys, rollbacks, backups) and a go-live checklist.
 
 ## Demo data
 

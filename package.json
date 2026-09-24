@@ -13,7 +13,13 @@
     "search:rebuild": "node --env-file=.env.local scripts/rebuild-search.js",
     "test": "node --env-file=.env.local --env-file=.env.test --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "test:unit": "node --test \"tests/unit/*.test.js\"",
-    "seed:demo": "node --env-file=.env.local scripts/seed-demo.js"
+    "seed:demo": "node --env-file=.env.local scripts/seed-demo.js",
+    "db:indexes": "node --env-file=.env.local scripts/sync-indexes.js",
+    "db:backup": "node --env-file=.env.local scripts/backup.js",
+    "db:check:prod": "node --env-file=.env.production.local scripts/check-db.js",
+    "db:indexes:prod": "node --env-file=.env.production.local scripts/sync-indexes.js",
+    "db:backup:prod": "node --env-file=.env.production.local scripts/backup.js",
+    "admin:create:prod": "node --env-file=.env.production.local scripts/create-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -30,5 +36,8 @@
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4"
   },
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": ">=20.9"
+  }
 }
