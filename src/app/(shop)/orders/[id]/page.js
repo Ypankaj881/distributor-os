@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import OrderTimeline from "@/components/orders/OrderTimeline";
 import ShareOrderButton from "@/components/shop/ShareOrderButton";
 import CancelOrderButton from "@/components/shop/CancelOrderButton";
+import ReorderButton from "@/components/shop/ReorderButton";
 import { ORDER_STATUS } from "@/lib/constants";
 import { requireRetailerPage } from "@/server/auth/guards";
 import { formatINR } from "@/lib/money";
@@ -90,6 +91,7 @@ export default async function ShopOrderPage({ params }) {
             <h2 className="mb-3 font-semibold">Status</h2>
             <OrderTimeline status={order.status} timeline={order.timeline} timeZone={tz} />
           </Card>
+          <ReorderButton orderId={order.id} />
           <ShareOrderButton order={order} distributorPhone={auth.company.phone} className="w-full" />
           {order.status === ORDER_STATUS.NEW && <CancelOrderButton orderId={order.id} />}
         </div>
