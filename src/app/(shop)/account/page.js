@@ -1,5 +1,6 @@
 import Card from "@/components/ui/Card";
 import LogoutButton from "@/components/auth/LogoutButton";
+import ChangePasswordCard from "@/components/auth/ChangePasswordCard";
 import { requireRetailerPage } from "@/server/auth/guards";
 import { formatPhone } from "@/lib/phone";
 
@@ -28,6 +29,8 @@ export default async function AccountPage() {
           <p className="mt-0.5 font-medium">{auth.company.name}</p>
         </div>
       </Card>
+
+      <ChangePasswordCard />
 
       <Card className="p-4">
         <LogoutButton redirectTo="/login" className="h-10 text-red-600" />

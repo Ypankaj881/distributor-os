@@ -3,7 +3,7 @@ import { Company } from "../models/Company.js";
 import { User } from "../models/User.js";
 import { Customer } from "../models/Customer.js";
 import { AppError, Errors } from "../http/errors.js";
-import { verifyPassword, dummyHash } from "../auth/password.js";
+import { verifyPassword, dummyHash, hashPassword } from "../auth/password.js";
 import { encodeSession } from "../auth/session.js";
 import { assertNotRateLimited, recordFailure, clearFailures } from "../auth/rateLimit.js";
 import { ROLES } from "../../lib/constants.js";
@@ -125,4 +125,27 @@ export async function getPublicCompany(slug) {
   await connectDB();
   const company = await Company.findOne({ slug, isActive: true }).select("name phone").lean();
   return company ? { name: company.name, phone: company.phone ?? null } : null;
+}
+
+// Change your own password (admin or retailer). All OTHER sessions are ended
+// (tokenVersion + 1); the caller receives a fresh token so this device stays
+// logged in. Wrong current password attempts are rate-limited like logins.
+export async function changePassword(auth, { currentPassword, newPassword }) {
+  await connectDB();
+  const key = `pwchange:${auth.userId}`;
+  await assertNotRateLimited([{ key, max: 5 }]);
+
+  const user = await User.findOne({ _id: auth.userId, companyId: auth.companyId }).select("+passwordHash");
+  if (!user) throw Errors.unauthorized();
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    await recordFailure([key]);
+    throw Errors.validation({ currentPassword: "Current password is incorrect." });
+  }
+  if (currentPassword === newPassword) throw Errors.validation({ newPassword: "Choose a different password." });
+
+  user.passwordHash = await hashPassword(newPassword);
+  user.tokenVersion += 1;
+  await user.save();
+  await clearFailures(key);
+  return { token: await encodeSession(user) };
 }
