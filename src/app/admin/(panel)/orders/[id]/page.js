@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 import OrderTimeline from "@/components/orders/OrderTimeline";
 import ConfirmOrderPanel from "@/components/admin/ConfirmOrderPanel";
 import OrderActions from "@/components/admin/OrderActions";
@@ -84,6 +85,7 @@ export default async function AdminOrderPage({ params }) {
           </div>
           <p className="mt-1 text-sm text-slate-500">Placed {formatDateTime(order.createdAt, tz)} · {order.items.length} items · {formatINR(order.grandTotal)}</p>
         </div>
+        <Button variant="secondary" href={`/admin/print/orders/${order.id}?auto=1`} target="_blank">Print packing slip</Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-start">
