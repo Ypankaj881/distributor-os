@@ -20,6 +20,7 @@ const PATHS = {
   minus: "M5 12h14",
   logout: "M15 17l5-5-5-5M20 12H9M12 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h7",
   chevronRight: "M9 6l6 6-6 6",
+  upload: "M12 16V4M7 9l5-5 5 5M4 20h16",
   inbox: "M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM3 13h5l1 3h6l1-3h5",
 };
 
