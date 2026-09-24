@@ -58,5 +58,7 @@ function checkSameOrigin(req) {
 
 export const config = {
   // Run on everything except Next.js internals and static files.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|txt)$).*)"],
+  // The app manifest, icons and service worker must be public (phones fetch
+  // them before anyone logs in).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|app-icon/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|txt)$).*)"],
 };

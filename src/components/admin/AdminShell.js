@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import LogoutButton from "@/components/auth/LogoutButton";
+import { useNewOrders, NewOrderToast } from "./NewOrderWatcher";
 import { cn } from "@/components/ui/cn";
 
 const NAV = [
@@ -20,7 +21,7 @@ function isActive(pathname, href) {
   return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 }
 
-function NavLinks({ onNavigate }) {
+function NavLinks({ onNavigate, newCount }) {
   const pathname = usePathname();
   return (
     <ul className="space-y-0.5">
@@ -39,6 +40,11 @@ function NavLinks({ onNavigate }) {
             >
               <Icon name={item.icon} className="size-5" />
               {item.label}
+              {item.href === "/admin/orders" && newCount > 0 && (
+                <span className="ml-auto rounded-full bg-amber-400 px-2 text-xs font-semibold leading-5 text-slate-900" aria-label={`${newCount} new orders`}>
+                  {newCount}
+                </span>
+              )}
             </Link>
           </li>
         );
@@ -66,14 +72,15 @@ function UserFooter({ userName }) {
 }
 
 // Desktop: fixed dark sidebar. Tablet/phone: top bar with a slide-in drawer.
-export default function AdminShell({ companyName, userName, children }) {
+export default function AdminShell({ companyName, userName, initialNewCount = 0, children }) {
   const [open, setOpen] = useState(false);
+  const { count: newCount, alert, dismiss } = useNewOrders(initialNewCount);
 
   return (
     <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col gap-6 bg-slate-900 px-3 py-5 lg:flex">
         <Brand companyName={companyName} />
-        <NavLinks />
+        <NavLinks newCount={newCount} />
         <UserFooter userName={userName} />
       </aside>
 
@@ -82,6 +89,11 @@ export default function AdminShell({ companyName, userName, children }) {
           <Icon name="menu" className="size-6" />
         </button>
         <span className="truncate text-sm font-semibold">{companyName}</span>
+        {newCount > 0 && (
+          <Link href="/admin/orders?status=NEW" className="ml-auto rounded-full bg-amber-400 px-2.5 text-xs font-semibold leading-6 text-slate-900">
+            {newCount} new
+          </Link>
+        )}
       </header>
 
       {open && (
@@ -94,11 +106,13 @@ export default function AdminShell({ companyName, userName, children }) {
                 <Icon name="x" />
               </button>
             </div>
-            <NavLinks onNavigate={() => setOpen(false)} />
+            <NavLinks onNavigate={() => setOpen(false)} newCount={newCount} />
             <UserFooter userName={userName} />
           </div>
         </div>
       )}
+
+      <NewOrderToast alert={alert} onClose={dismiss} />
 
       <main className="lg:pl-60">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>

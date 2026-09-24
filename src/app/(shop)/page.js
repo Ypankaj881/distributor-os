@@ -8,6 +8,7 @@ import { requireRetailerPage } from "@/server/auth/guards";
 import { listShopBrands, listShopProducts } from "@/server/services/catalogService";
 import { recentOrdersForReorder } from "@/server/services/reorderService";
 import ReorderButton from "@/components/shop/ReorderButton";
+import InstallAppPrompt from "@/components/pwa/InstallAppPrompt";
 import { StatusBadge } from "@/components/ui/Badge";
 import { formatINR } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
@@ -33,6 +34,8 @@ export default async function ShopHomePage() {
       </div>
 
       <ShopSearchBar />
+
+      <InstallAppPrompt appName={auth.company.name} />
 
       {recentOrders.length > 0 && (
         <section>

@@ -142,3 +142,21 @@ export async function recentOrdersForCustomer(companyId, customerId, limit = 5) 
   const { items, meta } = await listAdminOrders(companyId, { customerId, page: 1, limit, status: "all" });
   return { items, total: meta.total };
 }
+
+// Small, cheap summary for the admin's live "new orders" alert (polled every ~30 s).
+export async function getNewOrdersSummary(companyId) {
+  await connectDB();
+  const [newCount, latest] = await Promise.all([
+    Order.countDocuments({ companyId, status: ORDER_STATUS.NEW }),
+    Order.find({ companyId, status: ORDER_STATUS.NEW })
+      .select("orderNumber customerSnapshot.shopName grandTotal createdAt")
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .lean(),
+  ]);
+  const o = latest[0];
+  return {
+    newCount,
+    latest: o ? { id: toId(o._id), orderNumber: o.orderNumber, shopName: o.customerSnapshot?.shopName ?? "", grandTotal: o.grandTotal, createdAt: toIso(o.createdAt) } : null,
+  };
+}
